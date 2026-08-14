@@ -1,0 +1,44 @@
+# Scala & SBT build artifacts
+target/
+project/target/
+project/project/
+.bloop/
+.metals/
+.bsp/
+.scala-build/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+.pytest_cache/
+
+# FPGA intermediate synthesis & PnR build files
+*.anno.json
+*.fir
+*.frames
+*.ioplace
+*.ilang
+*.json
+*.net
+*.place
+*.route
+*.log
+*.rpt
+*.fasm
+*.eblif
+*.sdc
+*.post_routing
+constraints.place
+TopAudioAccelerator.v
+HelloWorld.v
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
