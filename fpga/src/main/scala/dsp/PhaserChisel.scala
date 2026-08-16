@@ -9,11 +9,11 @@ class PhaserChisel(
   val maxFreqHz:  Double = 2200.0,
   val feedback:   Double = 0.40,
   val mix:        Double = 0.50,
-  val sampleRate: Double = 44100.0
+  val sampleRate: Double = 48000.0
 ) extends Module {
   val io = IO(new AudioStreamIO(32))
 
-  private val romEntries = 64
+  private val romEntries = 512
   private val coeffTable: Seq[BigInt] = (0 until romEntries).map { i =>
     val phase   = 2.0 * Math.PI * i.toDouble / romEntries.toDouble
     val lfoNorm = (Math.sin(phase) + 1.0) / 2.0
@@ -22,21 +22,38 @@ class PhaserChisel(
     val a       = (t - 1.0) / (t + 1.0)
     FixedPointQ31.doubleToQ31BigInt(a)
   }
-  private val coeffROM = VecInit(coeffTable.map(_.S(32.W)))
+
+  val rom = Module(new DualPortBramRom(romEntries, 32, coeffTable))
+  rom.io.clock := clock
 
   private val phaseStepVal = BigInt(Math.round(rateHz * (1L << 24).toDouble / sampleRate))
   private val phaseStep    = phaseStepVal.U(24.W)
 
   val lfoPhaseReg = RegInit(0.U(24.W))
 
-  val romIdx     = lfoPhaseReg(23, 18)
-  val romNextIdx = (romIdx +& 1.U)(5, 0)
-  val romFrac    = Cat(0.U(1.W), lfoPhaseReg(17, 3)).asSInt
+  val romIdx     = lfoPhaseReg(23, 15)
+  val romNextIdx = (romIdx +& 1.U)(8, 0)
+  val romFrac    = Cat(0.U(1.W), lfoPhaseReg(14, 0), 0.U(16.W)).asSInt
 
-  val aY0        = coeffROM(romIdx)
-  val aY1        = coeffROM(romNextIdx)
+  rom.io.addrA := romIdx
+  rom.io.addrB := romNextIdx
+
+  val samplePipe = RegInit(0.S(32.W))
+  val fracPipe   = RegInit(0.S(32.W))
+  val validPipe  = RegInit(false.B)
+
+  when(io.sampleValid) {
+    samplePipe := io.sampleIn
+    fracPipe   := romFrac
+    validPipe  := true.B
+  }.otherwise {
+    validPipe  := false.B
+  }
+
+  val aY0        = rom.io.dataA
+  val aY1        = rom.io.dataB
   val aDelta     = FixedPointQ31.subQ31(aY1, aY0)
-  val aCoeffWire = FixedPointQ31.addQ31(aY0, FixedPointQ31.multQ31(aDelta, romFrac))
+  val aCoeffWire = FixedPointQ31.addQ31(aY0, FixedPointQ31.multQ31(aDelta, fracPipe))
 
   private val feedbackQ31    = FixedPointQ31.doubleToQ31BigInt(feedback).S(32.W)
   private val mixQ31         = FixedPointQ31.doubleToQ31BigInt(mix).S(32.W)
@@ -56,9 +73,9 @@ class PhaserChisel(
     FixedPointQ31.subQ31(sum, ayP)
   }
 
-  when(io.sampleValid) {
+  when(validPipe) {
     val fbScaled    = FixedPointQ31.multQ31(feedbackReg, feedbackQ31)
-    val inputWithFb = FixedPointQ31.addQ31(io.sampleIn, fbScaled)
+    val inputWithFb = FixedPointQ31.addQ31(samplePipe, fbScaled)
 
     val st0 = apfCompute(inputWithFb, aCoeffWire, xPrev(0), yPrev(0))
     val st1 = apfCompute(st0,         aCoeffWire, xPrev(1), yPrev(1))
@@ -79,7 +96,7 @@ class PhaserChisel(
 
     feedbackReg := st3
 
-    val dryTerm  = FixedPointQ31.multQ31(oneMinusMixQ31, io.sampleIn)
+    val dryTerm  = FixedPointQ31.multQ31(oneMinusMixQ31, samplePipe)
     val wetTerm  = FixedPointQ31.multQ31(mixQ31, st3)
     val finalOut = FixedPointQ31.addQ31(dryTerm, wetTerm)
 

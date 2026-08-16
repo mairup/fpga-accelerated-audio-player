@@ -34,6 +34,8 @@ env/
 constraints.place
 TopAudioAccelerator.v
 HelloWorld.v
+DualPort*.v
+firrtl_black_box_resource_files.f
 
 # OS & Editor files
 .DS_Store
