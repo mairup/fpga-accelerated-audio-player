@@ -21,8 +21,7 @@ ADC-POLL-MS ::= 50
 UDP-FRAME-BYTES ::= 960
 I2S-FRAME-BYTES ::= 960
 
-MAX-QUEUE-FRAMES ::= 12
-PREBUFFER-FRAMES ::= 3
+MAX-QUEUE-FRAMES ::= 10
 
 RX-QUEUE ::= Channel MAX-QUEUE-FRAMES
 
@@ -37,7 +36,6 @@ class AudioStreamer:
 
   rx-count/int       := 0
   write-count/int    := 0
-  underrun-count/int := 0
   drop-count/int     := 0
 
   constructor --.network:
@@ -136,38 +134,19 @@ class AudioStreamer:
         sleep --ms=1
 
   i2s-write-loop -> none:
-    silence-buf     := ByteArray I2S-FRAME-BYTES
-    is-prebuffering := true
+    silence-buf := ByteArray I2S-FRAME-BYTES
 
     while true:
-      if is-prebuffering:
-        if RX-QUEUE.size < PREBUFFER-FRAMES:
-          if i2s-bus:
-            err := catch: i2s-bus.write silence-buf
-            if err: log.error "I2S silence write error: $err"
-          sleep --ms=0
-          continue
-        else:
-          is-prebuffering = false
-
-      buf        := null
-      is-silence := false
-
+      buf := null
       if RX-QUEUE.size == 0:
-        underrun-count++
-        is-prebuffering = true
-        buf        = silence-buf
-        is-silence = true
+        buf = silence-buf
       else:
         buf = RX-QUEUE.receive
         scale-samples buf
 
       if i2s-bus:
-        err := catch:
-          i2s-bus.write buf
-          if not is-silence: write-count++
-        if err:
-          log.error "I2S write error: $err"
+        i2s-bus.write buf
+        write-count++
 
       sleep --ms=0
 
@@ -175,7 +154,7 @@ class AudioStreamer:
     while true:
       sleep (Duration --s=2)
       vol-pct := (volume-gain * 100.0).to-int
-      log.info "TELEM -> VOL: $(vol-pct)% ($(%.2f volume-voltage)V) | UDP RX:$rx-count | I2S TX:$write-count | Underruns:$underrun-count | Drops:$drop-count | Q:$RX-QUEUE.size"
+      log.info "TELEM -> VOL: $(vol-pct)% ($(%.2f volume-voltage)V) | UDP RX:$rx-count | I2S TX:$write-count | Drops:$drop-count | Q:$RX-QUEUE.size"
 
 main:
   network := net.open
