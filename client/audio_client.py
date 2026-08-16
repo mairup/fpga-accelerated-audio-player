@@ -17,8 +17,8 @@ FRAME_SAMPLES = 480  # 10 ms per packet (480 / 48000 = 0.010 s)
 FRAME_BYTES = FRAME_SAMPLES * CHANNELS * 2  # 960 bytes audio payload (Mono 16-bit PCM)
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Proto-13 Real-Time Raw Audio Streamer Client")
-    parser.add_argument("--target", default="192.168.5.72", help="Target ESP32 IP address")
+    parser = argparse.ArgumentParser(description="Audio Streamer Client")
+    parser.add_argument("--target", default="192.168.5.73", help="Target ESP32 IP address")
     parser.add_argument("--port", type=int, default=ESP_PORT, help="Target ESP32 UDP port")
     parser.add_argument("--synth", action="store_true", help="Generate continuous 440 Hz test tone mode")
     parser.add_argument("--burst", action="store_true", help="Generate 2 Hz ON/OFF burst test pattern mode")
@@ -115,7 +115,7 @@ class AudioStreamerClient:
 
     def start(self) -> None:
         self.running = True
-        print(f"Proto-13 Raw Audio Streamer -> Target ESP32: {self.target_host}:{self.target_port}")
+        print(f"Audio Streamer -> Target ESP32: {self.target_host}:{self.target_port}")
         if self.static_test:
             self.static_test_loop()
         elif self.burst:
@@ -178,17 +178,18 @@ class AudioStreamerClient:
                 pass
 
             now = time.time()
-            if now - last_meter >= 2.0:
+            if now - last_meter >= 0.25:
                 last_meter = now
                 state_str = "BURST ON " if is_on else "BURST OFF"
-                print(f"[BURST] State: {state_str} | RMS: {self.cap_rms_db:5.1f} dB | UDP TX: {self.tx_count:6d} total")
+                sys.stdout.write(f"\r[BURST] State: {state_str} | RMS: {self.cap_rms_db:5.1f} dB | Sent: {self.tx_count:6d} pkts")
+                sys.stdout.flush()
             next_time += frame_interval
             sleep_time = next_time - time.time()
             if sleep_time > 0:
                 time.sleep(sleep_time)
 
     def synth_loop(self) -> None:
-        print("Synthesizing continuous 440 Hz test tone (Mono 16-bit @ 100 pkts/s)...")
+        print("Synthesizing 440 Hz tone (Mono 16-bit @ 100 pkts/s)...")
         t_step = 1.0 / SAMPLE_RATE
         last_meter = 0
         frame_interval = FRAME_SAMPLES / float(SAMPLE_RATE)
@@ -205,10 +206,11 @@ class AudioStreamerClient:
             except OSError:
                 pass
             now = time.time()
-            if now - last_meter >= 2.0:
+            if now - last_meter >= 0.25:
                 last_meter = now
-                cap_str = f"{self.cap_rms_db:5.1f} dB" if self.cap_rms_db > -90 else "  SILENT"
-                print(f"[METER] Synth: {cap_str} | UDP TX: {self.tx_count:6d} total")
+                cap_str = f"{self.cap_rms_db:5.1f} dB" if self.cap_rms_db > -90 else "   SILENT"
+                sys.stdout.write(f"\r[SYNTH] Output: {cap_str} | Sent: {self.tx_count:6d} pkts")
+                sys.stdout.flush()
             next_time += frame_interval
             sleep_time = next_time - time.time()
             if sleep_time > 0:
@@ -228,7 +230,7 @@ class AudioStreamerClient:
         except Exception as e:
             print(f"Error starting capture: {e}")
             return
-        print("\nStreaming raw computer audio (Mono 16-bit @ 100 pkts/s) -> ESP32 -> Nexys A7 FPGA AUX DAC...\n")
+        print("\nStreaming computer audio (Mono 16-bit @ 100 pkts/s) -> ESP32 -> Nexys A7 FPGA AUX DAC...\n")
         last_meter = 0
         frame_interval = FRAME_SAMPLES / float(SAMPLE_RATE)
         next_time = time.time()
@@ -252,10 +254,11 @@ class AudioStreamerClient:
                     self.tx_count += 1
                     
                     now_meter = time.time()
-                    if now_meter - last_meter >= 2.0:
+                    if now_meter - last_meter >= 0.25:
                         last_meter = now_meter
-                        cap_str = f"{self.cap_rms_db:5.1f} dB" if self.cap_rms_db > -90 else "  SILENT"
-                        print(f"[METER] OS Capture: {cap_str} | UDP TX: {self.tx_count:6d} total")
+                        cap_str = f"{self.cap_rms_db:5.1f} dB" if self.cap_rms_db > -90 else "   SILENT"
+                        sys.stdout.write(f"\r[STREAMING] Capture: {cap_str} | Sent: {self.tx_count:6d} pkts ({(self.tx_count*10)/1000.0:5.1f}s)")
+                        sys.stdout.flush()
                 else:
                     time.sleep(0.0005)
             except Exception:
