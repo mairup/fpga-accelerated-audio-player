@@ -4,11 +4,11 @@ import chisel3._
 import chisel3.util._
 
 class PhaserChisel(
-  val rateHz:     Double = 0.8,
-  val minFreqHz:  Double = 200.0,
-  val maxFreqHz:  Double = 2200.0,
-  val feedback:   Double = 0.40,
-  val mix:        Double = 0.50,
+  val rateHz:     Double = 0.5,
+  val minFreqHz:  Double = 350.0,
+  val maxFreqHz:  Double = 1800.0,
+  val feedback:   Double = 0.15,
+  val mix:        Double = 0.40,
   val sampleRate: Double = 48000.0
 ) extends Module {
   val io = IO(new AudioStreamIO(32))

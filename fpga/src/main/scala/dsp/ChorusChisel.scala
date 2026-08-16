@@ -4,10 +4,11 @@ import chisel3._
 import chisel3.util._
 
 class ChorusChisel(
-    val rateHz: Double = 1.2,
-    val depthMs: Double = 4.0,
-    val centerDelayMs: Double = 10.0,
+    val rateHz: Double = 0.9,
+    val depthMs: Double = 2.5,
+    val centerDelayMs: Double = 8.0,
     val mix: Double = 0.5,
+    val feedback: Double = 0.20,
     val sampleRate: Double = 48000.0
 ) extends Module {
 
@@ -39,8 +40,9 @@ class ChorusChisel(
   private val centerDelayQ16 = BigInt(Math.round(centerDelaySamples * 65536.0)).S(32.W)
   private val depthQ16       = BigInt(Math.round(depthSamples * 65536.0)).S(32.W)
 
-  private val coef070 = FixedPointQ31.doubleToQ31BigInt(0.70).S(32.W)
-  private val coef030 = FixedPointQ31.doubleToQ31BigInt(0.30).S(32.W)
+  private val coef085 = FixedPointQ31.doubleToQ31BigInt(0.85).S(32.W)
+  private val coef015 = FixedPointQ31.doubleToQ31BigInt(0.15).S(32.W)
+  private val feedbackQ31 = FixedPointQ31.doubleToQ31BigInt(feedback).S(32.W)
 
   private val mixQ31         = FixedPointQ31.doubleToQ31BigInt(mix).S(32.W)
   private val oneMinusMixQ31 = FixedPointQ31.doubleToQ31BigInt(1.0 - mix).S(32.W)
@@ -73,10 +75,13 @@ class ChorusChisel(
   sineRom.io.addrA := lfoIdx
   sineRom.io.addrB := lfoNextIdx
 
-  // Stage 0: Sample Input & RAM Write
+  // Stage 0: Sample Input + Feedback & RAM Write
+  val fbTerm = FixedPointQ31.multQ31(feedbackQ31, prevWetReg)
+  val inputWithFb = FixedPointQ31.addQ31(io.sampleIn, fbTerm)
+
   ram.io.weA   := io.sampleValid
   ram.io.addrA := writePtrReg
-  ram.io.dinA  := io.sampleIn
+  ram.io.dinA  := inputWithFb
 
   // Default RAM read address
   val ramReadAddr = WireDefault(0.U(delayBufAddrW.W))
@@ -91,7 +96,7 @@ class ChorusChisel(
     pipe1        := false.B
   }
 
-  // Stage 1: Read Sine ROM & compute delay read pointer
+  // Stage 1: Read Sine ROM & compute proper modulo circular buffer read pointer
   val lfoY0    = sineRom.io.dataA
   val lfoY1    = sineRom.io.dataB
   val lfoDelta = FixedPointQ31.subQ31(lfoY1, lfoY0)
@@ -100,12 +105,15 @@ class ChorusChisel(
   val modDelayQ16     = FixedPointQ31.multQ31(depthQ16, lfoVal)
   val delaySamplesQ16 = FixedPointQ31.addQ31(centerDelayQ16, modDelayQ16)
 
-  val curWritePtrQ16 = Cat(writePtrReg, 0.U(16.W)).asSInt
-  val readPtrQ16     = FixedPointQ31.subQ31(curWritePtrQ16, delaySamplesQ16)
+  // Proper unsigned circular buffer calculation: (writePtr + 1024 - delay) mod 1024
+  val curWritePtrFixed = (writePtrReg << 16).asUInt
+  val bufOffsetFixed   = (1024.U << 16)
+  val readPtrTotal     = (curWritePtrFixed +& bufOffsetFixed) - delaySamplesQ16.asUInt
 
-  val floorIdx = readPtrQ16(delayBufAddrW + 15, 16)
-  val nextIdx  = (floorIdx +& 1.U)(delayBufAddrW - 1, 0)
-  val fracQ31  = Cat(0.U(1.W), readPtrQ16(15, 1)).asSInt
+  val floorIdx = (readPtrTotal >> 16)(delayBufAddrW - 1, 0)
+  val nextIdx  = (floorIdx + 1.U)(delayBufAddrW - 1, 0)
+  val fracQ16  = readPtrTotal(15, 0)
+  val fracQ31  = (fracQ16 << 15).asSInt
 
   when(pipe1) {
     ramReadAddr   := floorIdx
@@ -132,9 +140,9 @@ class ChorusChisel(
   val deltaS = FixedPointQ31.subQ31(s2, s1Reg)
   val rawWet = FixedPointQ31.addQ31(s1Reg, FixedPointQ31.multQ31(deltaS, delayFracPipe))
 
-  val term070 = FixedPointQ31.multQ31(coef070, rawWet)
-  val term030 = FixedPointQ31.multQ31(coef030, prevWetReg)
-  val warmWet = FixedPointQ31.addQ31(term070, term030)
+  val term085 = FixedPointQ31.multQ31(coef085, rawWet)
+  val term015 = FixedPointQ31.multQ31(coef015, prevWetReg)
+  val warmWet = FixedPointQ31.addQ31(term085, term015)
 
   val dryTerm  = FixedPointQ31.multQ31(oneMinusMixQ31, samplePipe2)
   val wetTerm  = FixedPointQ31.multQ31(mixQ31, warmWet)
