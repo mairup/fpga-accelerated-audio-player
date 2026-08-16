@@ -164,32 +164,23 @@ class TopAudioAccelerator extends Module {
     when(sampleStrobe) {
       tonePhase := tonePhase + 39371073.U
     }
-    val toneSample = Mux(tonePhase(31), (-2147483648).S(32.W), 2147483647.S(32.W))
+    val toneSample = Mux(tonePhase(31), (-1073741824).S(32.W), 1073741824.S(32.W))
 
-    val pwmDiv = RegInit(0.U(18.W))
-    pwmDiv := pwmDiv + 1.U
-    val directPwm = pwmDiv < 113636.U
-
-    val audioToDac = Mux(io.swTestTone, toneSample,
-                    Mux(io.swOutMaster, audioPipeline.io.sampleOut, 0.S(32.W)))
-    val dacValid = Mux(io.swTestTone, sampleStrobe, audioPipeline.io.outValid)
+    val audioToDac = Mux(io.swTestTone || io.swTestPwm, toneSample,
+                     Mux(io.swOutMaster, audioPipeline.io.sampleOut, 0.S(32.W)))
+    val dacValid   = Mux(io.swTestTone || io.swTestPwm, sampleStrobe, audioPipeline.io.outValid)
 
     dac.io.sampleIn := audioToDac
     dac.io.sampleValid := dacValid
 
-    val basePwm = Mux(io.swTestPwm, directPwm, dac.io.pwmOut)
+    // Output is enabled if SW15 (Test Tone), SW14 (Test PWM), or SW0 (Master Out) is ON
+    val audioEnabled = io.swTestTone || io.swTestPwm || io.swOutMaster
+    val activePwm    = Mux(audioEnabled, dac.io.pwmOut, false.B)
 
-    // SW15 ON -> Test Tone Mode (440 Hz tone)
-    // SW15 OFF -> Live PC Audio Stream from ESP32/Wi-Fi
-    // SW14 ON -> Direct PWM Mode (Bypass Sigma-Delta)
-    // SW0 ON  -> Enable Audio Output (Master On/Off)
-    val audioEnabled = Mux(io.swTestTone, true.B, io.swOutMaster)
-    val activePwm = Mux(audioEnabled, basePwm, false.B)
-
-    io.audPwm      := activePwm
-    io.audPwmRight := activePwm  // JA Pin 2 (D18) -> Tip (Left Speaker)
-    io.audPwmLeft  := activePwm  // JA Pin 1 (C17) -> Middle Ring (Right Speaker)
-    io.audPwmExtra := activePwm  // JA Pin 3 (E18)
+    io.audPwm      := activePwm  // Onboard 3.5mm jack (AUD_PWM / Pin A11)
+    io.audPwmLeft  := activePwm  // PMOD JA Pin 1 (C17) -> Left Channel Speaker Output
+    io.audPwmRight := activePwm  // PMOD JA Pin 2 (D18) -> Right Channel Speaker Output
+    io.audPwmExtra := activePwm  // PMOD JA Pin 3 (E18) -> Extra Output
     io.audSd       := true.B
 
     io.ledOutMaster := io.swOutMaster
