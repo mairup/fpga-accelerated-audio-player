@@ -10,17 +10,23 @@ set_property LOC C12 [get_ports io_cpuResetN]
 set_property IOSTANDARD LVCMOS33 [get_ports io_cpuResetN]
 
 ## I2S PMOD JA Header (Bottom Row)
-set_property LOC D17 [get_ports io_bclk]
-set_property IOSTANDARD LVCMOS33 [get_ports io_bclk]
+## Wiring matching physical connections:
+## ESP32 SDOUT (GPIO12) -> JA Pin 7  (D17) -> io_sdOut (input)
+## ESP32 WS    (GPIO33) -> JA Pin 8  (E17) -> io_ws    (input)
+## ESP32 SDIN  (GPIO13) -> JA Pin 9  (F18) -> io_sdIn  (output)
+## ESP32 BCLK  (GPIO32) -> JA Pin 10 (G18) -> io_bclk  (input)
+
+set_property LOC D17 [get_ports io_sdOut]
+set_property IOSTANDARD LVCMOS33 [get_ports io_sdOut]
 
 set_property LOC E17 [get_ports io_ws]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ws]
 
-set_property LOC F18 [get_ports io_sdOut]
-set_property IOSTANDARD LVCMOS33 [get_ports io_sdOut]
-
-set_property LOC G18 [get_ports io_sdIn]
+set_property LOC F18 [get_ports io_sdIn]
 set_property IOSTANDARD LVCMOS33 [get_ports io_sdIn]
+
+set_property LOC G18 [get_ports io_bclk]
+set_property IOSTANDARD LVCMOS33 [get_ports io_bclk]
 
 ## DIY Stereo Audio Outputs on PMOD JA (Top Row)
 set_property LOC C17 [get_ports io_audPwmLeft]

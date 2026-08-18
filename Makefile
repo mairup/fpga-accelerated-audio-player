@@ -5,24 +5,20 @@ ESP_IP ?= 192.168.5.73
 JAG ?= $(shell which jag 2>/dev/null || echo $(HOME)/.local/bin/jag)
 PYTHON ?= python3
 
-.PHONY: help flash flash-fpga flash-esp esp client build clean
+.PHONY: help flash esp client build clean
 
 help:
-	@echo "FPGA Accelerated Audio Player - Setup & Commands"
-	@echo "================================================"
-	@echo "make flash         - Flash latest FPGA bitstream to $(BOARD)"
-	@echo "make esp           - Deploy & run audio streamer on ESP32 ($(ESP_DEVICE))"
-	@echo "make client        - Launch real-time desktop audio streaming client ($(ESP_IP))"
-	@echo "make build-fpga    - Rebuild FPGA bitstream from Chisel HDL in container"
-	@echo "make clean         - Clean temporary build artifacts"
+	@echo "FPGA Accelerated Audio Player"
+	@echo "============================="
+	@echo "make flash   - Flash FPGA bitstream to $(BOARD)"
+	@echo "make esp     - Deploy & run audio streamer on ESP32 ($(ESP_DEVICE))"
+	@echo "make client  - Launch audio streaming client ($(ESP_IP))"
+	@echo "make build   - Build FPGA bitstream"
+	@echo "make clean   - Clean build artifacts"
 
-flash: flash-fpga
-
-flash-fpga:
+flash:
 	@echo "Flashing $(BITSTREAM) to $(BOARD)..."
 	openFPGALoader -b $(BOARD) $(BITSTREAM)
-
-flash-esp: esp
 
 esp:
 	@echo "Deploying audio_streamer.toit to ESP32 ($(ESP_DEVICE))..."
@@ -32,9 +28,7 @@ client:
 	@echo "Starting audio client pointing to $(ESP_IP)..."
 	$(PYTHON) client/audio_client.py --target $(ESP_IP)
 
-build: build-fpga
-
-build-fpga:
+build:
 	@echo "Recompiling FPGA bitstream..."
 	$(MAKE) -C fpga build
 

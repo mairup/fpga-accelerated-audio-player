@@ -42,14 +42,15 @@ class TopAudioAcceleratorIO extends Bundle {
   val ledTestTone = Output(Bool())
 }
 
-class TopAudioAccelerator extends Module {
+class TopAudioAccelerator extends RawModule {
+  val clock = IO(Input(Clock()))
   val io = IO(new TopAudioAcceleratorIO)
 
   def toHexChar(nibble: UInt): UInt = {
     Mux(nibble < 10.U, nibble + 48.U, nibble + 55.U)
   }
 
-  withReset(!io.cpuResetN) {
+  withClockAndReset(clock, !io.cpuResetN) {
     val i2sController = Module(new I2sController)
     val audioPipeline = Module(new AudioPipeline)
     val dac = Module(new SigmaDeltaDAC)

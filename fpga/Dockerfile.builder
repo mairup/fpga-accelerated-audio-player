@@ -1,5 +1,8 @@
 FROM ubuntu:22.04
 
+ARG UID=1000
+ARG GID=1000
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV F4PGA_INSTALL_DIR=/opt/f4pga
 ENV PATH=/opt/conda/envs/xc7/bin:/usr/local/sbt/bin:$PATH
@@ -35,6 +38,9 @@ RUN mkdir -p /opt/f4pga/xc7 && \
     wget -qO- "https://storage.googleapis.com/symbiflow-arch-defs/artifacts/prod/foss-fpga-tools/symbiflow-arch-defs/continuous/install/20220920-124259/symbiflow-arch-defs-xc7a50t_test-007d1c1.tar.xz" | tar -xJ -C /opt/f4pga/xc7 && \
     ln -s /opt/f4pga/xc7/share/f4pga/arch/xc7a50t_test /opt/f4pga/xc7/share/f4pga/arch/artix7
 
+RUN groupadd -g ${GID} mai && useradd -u ${UID} -g ${GID} -m -s /bin/bash mai
+
+USER mai
 WORKDIR /workspace
 
 CMD ["/workspace/scripts/build_in_container.sh"]
