@@ -3,6 +3,7 @@
 ## 100 MHz System Clock
 set_property LOC E3 [get_ports clock]
 set_property IOSTANDARD LVCMOS33 [get_ports clock]
+create_clock -period 10.0 -name sys_clk -waveform {0 5.0} [get_ports clock]
 
 ## CPU RESET button (C12, active-low / CPU_RESETN). Inverted in the Scala top
 ## so an active-high reset is derived. Normally HIGH = not reset; press to reset.
