@@ -137,7 +137,7 @@ class TopAudioAccelerator extends RawModule {
 
     when(msgTransmitting) {
       when(uartTransmitter.io.transmitterReady) {
-        when(msgIndex === 25.U) {
+        when(msgIndex === 31.U) {
           msgTransmitting := false.B
         }.otherwise {
           msgIndex := msgIndex + 1.U

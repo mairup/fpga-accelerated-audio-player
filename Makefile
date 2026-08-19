@@ -5,20 +5,39 @@ ESP_IP ?= 192.168.5.73
 JAG ?= $(shell which jag 2>/dev/null || echo $(HOME)/.local/bin/jag)
 PYTHON ?= python3
 
-.PHONY: help flash esp client build clean
+ifeq (fpga,$(firstword $(MAKECMDGOALS)))
+  FPGA_CMD := $(word 2,$(MAKECMDGOALS))
+  $(eval $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)):;@:)
+endif
+
+.PHONY: help fpga esp client clean
 
 help:
 	@echo "FPGA Accelerated Audio Player"
 	@echo "============================="
-	@echo "make flash   - Flash FPGA bitstream to $(BOARD)"
-	@echo "make esp     - Deploy & run audio streamer on ESP32 ($(ESP_DEVICE))"
-	@echo "make client  - Launch audio streaming client ($(ESP_IP))"
-	@echo "make build   - Build FPGA bitstream"
-	@echo "make clean   - Clean build artifacts"
+	@echo "make fpga        - Build & flash FPGA bitstream to $(BOARD)"
+	@echo "make fpga build  - Build FPGA bitstream only"
+	@echo "make fpga flash  - Flash FPGA bitstream to $(BOARD) only"
+	@echo "make esp         - Deploy & run audio streamer on ESP32 ($(ESP_DEVICE))"
+	@echo "make client      - Launch audio streaming client ($(ESP_IP))"
+	@echo "make clean       - Clean build artifacts"
 
-flash:
+fpga:
+ifeq ($(FPGA_CMD),flash)
 	@echo "Flashing $(BITSTREAM) to $(BOARD)..."
 	openFPGALoader -b $(BOARD) $(BITSTREAM)
+else ifeq ($(FPGA_CMD),build)
+	@echo "Recompiling FPGA bitstream..."
+	$(MAKE) -C fpga build
+else ifeq ($(FPGA_CMD),)
+	@echo "Building FPGA bitstream..."
+	$(MAKE) -C fpga build
+	@echo "Flashing $(BITSTREAM) to $(BOARD)..."
+	openFPGALoader -b $(BOARD) $(BITSTREAM)
+else
+	@echo "Unknown FPGA command '$(FPGA_CMD)'. Use 'make fpga', 'make fpga build', or 'make fpga flash'."
+	@exit 1
+endif
 
 esp:
 	@echo "Deploying audio_streamer.toit to ESP32 ($(ESP_DEVICE))..."
@@ -27,10 +46,6 @@ esp:
 client:
 	@echo "Starting audio client pointing to $(ESP_IP)..."
 	$(PYTHON) client/audio_client.py --target $(ESP_IP)
-
-build:
-	@echo "Recompiling FPGA bitstream..."
-	$(MAKE) -C fpga build
 
 clean:
 	$(MAKE) -C fpga clean
