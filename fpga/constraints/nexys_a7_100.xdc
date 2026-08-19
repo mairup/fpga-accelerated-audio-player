@@ -13,17 +13,14 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_cpuResetN]
 ## Wiring matching physical connections:
 ## ESP32 SDOUT (GPIO12) -> JA Pin 7  (D17) -> io_sdOut (input)
 ## ESP32 WS    (GPIO33) -> JA Pin 8  (E17) -> io_ws    (input)
-## ESP32 SDIN  (GPIO13) -> JA Pin 9  (F18) -> io_sdIn  (output)
 ## ESP32 BCLK  (GPIO32) -> JA Pin 10 (G18) -> io_bclk  (input)
+## JA Pin 9 (F18) is now FREE / UNUSED
 
 set_property LOC D17 [get_ports io_sdOut]
 set_property IOSTANDARD LVCMOS33 [get_ports io_sdOut]
 
 set_property LOC E17 [get_ports io_ws]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ws]
-
-set_property LOC F18 [get_ports io_sdIn]
-set_property IOSTANDARD LVCMOS33 [get_ports io_sdIn]
 
 set_property LOC G18 [get_ports io_bclk]
 set_property IOSTANDARD LVCMOS33 [get_ports io_bclk]

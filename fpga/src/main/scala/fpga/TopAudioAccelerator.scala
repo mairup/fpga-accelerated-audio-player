@@ -8,7 +8,6 @@ class TopAudioAcceleratorIO extends Bundle {
   val bclk = Input(Bool())
   val ws = Input(Bool())
   val sdOut = Input(Bool())
-  val sdIn = Output(Bool())
   val audPwm = Output(Bool())
   val audSd = Output(Bool())
   val audPwmLeft  = Output(Bool())
@@ -60,9 +59,6 @@ class TopAudioAccelerator extends RawModule {
     i2sController.io.bclk := io.bclk
     i2sController.io.ws := io.ws
     i2sController.io.sdOut := io.sdOut
-    io.sdIn := i2sController.io.sdIn
-
-    i2sController.io.pcmTx := i2sController.io.pcmRx
 
     audioPipeline.io.sampleIn := i2sController.io.pcmRx
     audioPipeline.io.sampleValid := i2sController.io.pcmRxValid
