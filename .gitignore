@@ -1,13 +1,45 @@
-# Scala & SBT build artifacts
+# Scala, SBT & Chisel
 target/
+**/target/
 project/target/
 project/project/
 .bloop/
 .metals/
 .bsp/
 .scala-build/
+test_run_dir/
+**/test_run_dir/
+*.class
 
-# Python artifacts
+# FPGA Build Outputs & Bitstreams
+*.bit
+fpga/*.v
+fpga/*.json
+*.anno.json
+*.fir
+*.fasm
+*.frames
+*.eblif
+*.net
+*.place
+*.route
+*.ioplace
+*.ilang
+*.log
+*.rpt
+*.sdc
+*.post_routing
+constraints.place
+firrtl_black_box_resource_files.f
+
+# Audio & Media Outputs
+*.wav
+
+# Toit & Embedded
+*.snapshot
+.packages/
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -15,34 +47,12 @@ __pycache__/
 env/
 .pytest_cache/
 
-# FPGA intermediate synthesis & PnR build files
-*.anno.json
-*.fir
-*.frames
-*.ioplace
-*.ilang
-*.json
-*.net
-*.place
-*.route
-*.log
-*.rpt
-*.fasm
-*.eblif
-*.sdc
-*.post_routing
-constraints.place
-TopAudioAccelerator.v
-HelloWorld.v
-DualPort*.v
-firrtl_black_box_resource_files.f
-
-# OS & Editor files
+# OS, Editors & AI Assistants
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 *.swp
 *~
-
+.kilo/
 .kilo
