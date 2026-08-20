@@ -31,23 +31,26 @@ class AudioPipeline extends Module {
   val enableChorus    = fxMasterEnable && io.swChorus
   val enablePhaser    = fxMasterEnable && io.swPhaser
 
-  val overdrive = Module(new OverdriveChisel)
-  // val fuzz      = Module(new FuzzChisel)
-  // val chorus    = Module(new ChorusChisel)
-  // val phaser    = Module(new PhaserChisel)
+  val fuzz = Module(new FuzzChisel)
+  val chorus = Module(new ChorusChiselRedesign)
 
-  overdrive.io.sampleIn    := io.sampleIn
-  overdrive.io.sampleValid := io.sampleValid
-  val stage1Sample = Mux(enableOverdrive, overdrive.io.sampleOut, io.sampleIn)
-  val stage1Valid  = Mux(enableOverdrive, overdrive.io.outValid, io.sampleValid)
+  fuzz.io.sampleIn := io.sampleIn
+  fuzz.io.sampleValid := io.sampleValid
+  val stage1Sample = Mux(enableFuzz, fuzz.io.sampleOut, io.sampleIn)
+  val stage1Valid = Mux(enableFuzz, fuzz.io.outValid, io.sampleValid)
 
-  // Bypass unused effects to speed up FPGA synthesis & routing
-  io.sampleOut := stage1Sample
-  io.outValid  := stage1Valid
+  chorus.io.sampleIn := stage1Sample
+  chorus.io.sampleValid := stage1Valid
+  val stage2Sample = Mux(enableChorus, chorus.io.sampleOut, stage1Sample)
+  val stage2Valid = Mux(enableChorus, chorus.io.outValid, stage1Valid)
 
-  io.ledFxMaster  := fxMasterEnable
+  io.sampleOut := stage2Sample
+  io.outValid := stage2Valid
+
+  io.ledFxMaster := fxMasterEnable
   io.ledOverdrive := enableOverdrive
-  io.ledFuzz      := enableFuzz
-  io.ledChorus    := enableChorus
-  io.ledPhaser    := enablePhaser
+  io.ledFuzz := enableFuzz
+  io.ledChorus := enableChorus
+  io.ledPhaser := enablePhaser
 }
+
