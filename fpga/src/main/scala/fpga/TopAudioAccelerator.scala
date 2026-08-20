@@ -68,66 +68,46 @@ class TopAudioAccelerator extends RawModule {
     audioPipeline.io.swChorus := io.swChorus
     audioPipeline.io.swPhaser := io.swPhaser
 
-    val absSample = Mux(i2sController.io.pcmRx < 0.S, (-i2sController.io.pcmRx).asUInt, i2sController.io.pcmRx.asUInt)
-    val onPeakTracker = RegInit(0.U(32.W))
-    val offPeakTracker = RegInit(0.U(32.W))
+    val visualizer = Module(new dsp.visualizer.VisualizerTop(1024, 8, 8))
+    visualizer.io.sampleIn := i2sController.io.pcmRx
+    visualizer.io.sampleValid := i2sController.io.pcmRxValid
 
-    when(i2sController.io.pcmRxValid) {
-      when(absSample > 1000.U) {
-        when(absSample > onPeakTracker) {
-          onPeakTracker := absSample
-        }
-      }.otherwise {
-        when(absSample > offPeakTracker) {
-          offPeakTracker := absSample
-        }
-      }
+    def wordToHexChars(w: UInt): Seq[UInt] = {
+      Seq(
+        toHexChar(w(31, 28)),
+        toHexChar(w(27, 24)),
+        toHexChar(w(23, 20)),
+        toHexChar(w(19, 16)),
+        toHexChar(w(15, 12)),
+        toHexChar(w(11, 8)),
+        toHexChar(w(7, 4)),
+        toHexChar(w(3, 0))
+      )
     }
+
+    val absSample = Mux(i2sController.io.pcmRx < 0.S, (-i2sController.io.pcmRx).asUInt, i2sController.io.pcmRx.asUInt)
 
     val timer10Hz = RegInit(0.U(24.W))
     val trigger10Hz = WireDefault(false.B)
-    val latchedOnPeak = RegInit(0.U(32.W))
-    val latchedOffPeak = RegInit(0.U(32.W))
+    val latchedBands = RegInit(VecInit(Seq.fill(8)(0.U(32.W))))
 
     when(timer10Hz === 9_999_999.U) {
       timer10Hz := 0.U
       trigger10Hz := true.B
-      latchedOnPeak := onPeakTracker
-      latchedOffPeak := offPeakTracker
-      onPeakTracker := 0.U
-      offPeakTracker := 0.U
+      latchedBands := visualizer.io.catVolume
     }.otherwise {
       timer10Hz := timer10Hz + 1.U
     }
 
-    val on7 = toHexChar(latchedOnPeak(31, 28))
-    val on6 = toHexChar(latchedOnPeak(27, 24))
-    val on5 = toHexChar(latchedOnPeak(23, 20))
-    val on4 = toHexChar(latchedOnPeak(19, 16))
-    val on3 = toHexChar(latchedOnPeak(15, 12))
-    val on2 = toHexChar(latchedOnPeak(11, 8))
-    val on1 = toHexChar(latchedOnPeak(7, 4))
-    val on0 = toHexChar(latchedOnPeak(3, 0))
+    val bandHexChars = (0 until 8).map(i => wordToHexChars(latchedBands(i)))
+    val msgSeq = (0 until 8).flatMap { i =>
+      if (i < 7) bandHexChars(i) :+ ' '.U(8.W)
+      else bandHexChars(i)
+    } ++ Seq('\r'.U(8.W), '\n'.U(8.W))
 
-    val off7 = toHexChar(latchedOffPeak(31, 28))
-    val off6 = toHexChar(latchedOffPeak(27, 24))
-    val off5 = toHexChar(latchedOffPeak(23, 20))
-    val off4 = toHexChar(latchedOffPeak(19, 16))
-    val off3 = toHexChar(latchedOffPeak(15, 12))
-    val off2 = toHexChar(latchedOffPeak(11, 8))
-    val off1 = toHexChar(latchedOffPeak(7, 4))
-    val off0 = toHexChar(latchedOffPeak(3, 0))
-
-    val msgBuf = VecInit(
-      'O'.U(8.W), 'N'.U(8.W), ':'.U(8.W), '0'.U(8.W), 'x'.U(8.W),
-      on7, on6, on5, on4, on3, on2, on1, on0,
-      ' '.U(8.W), '|'.U(8.W), ' '.U(8.W),
-      'O'.U(8.W), 'F'.U(8.W), 'F'.U(8.W), ':'.U(8.W), '0'.U(8.W), 'x'.U(8.W),
-      off7, off6, off5, off4, off3, off2, off1, off0,
-      '\r'.U(8.W), '\n'.U(8.W)
-    )
-
-    val msgIndex = RegInit(0.U(5.W))
+    val msgBuf = VecInit(msgSeq)
+    val msgLength = msgSeq.length
+    val msgIndex = RegInit(0.U(7.W))
     val msgTransmitting = RegInit(false.B)
 
     when(trigger10Hz && !msgTransmitting && uartTransmitter.io.transmitterReady) {
@@ -137,7 +117,7 @@ class TopAudioAccelerator extends RawModule {
 
     when(msgTransmitting) {
       when(uartTransmitter.io.transmitterReady) {
-        when(msgIndex === 31.U) {
+        when(msgIndex === (msgLength - 1).U) {
           msgTransmitting := false.B
         }.otherwise {
           msgIndex := msgIndex + 1.U
