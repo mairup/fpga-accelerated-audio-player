@@ -35,8 +35,8 @@ class ChorusChiselRedesign(
   private val centerDelaySamples = Math.round(centerDelayMs * (sampleRate / 1000.0)).toInt
   private val depthSamples = Math.round(depthMs * (sampleRate / 1000.0)).toInt
 
-  private val coef085 = FixedPointQ31.fromDouble(0.85)
-  private val coef015 = FixedPointQ31.fromDouble(0.15)
+  private val coef085 = FixedPointQ31.fromDouble(0.25)
+  private val coef015 = FixedPointQ31.fromDouble(0.75)
 
   private val alphaQ31 = FixedPointQ31.fromDouble(alpha)
   private val betaQ31 = FixedPointQ31.fromDouble(beta)
