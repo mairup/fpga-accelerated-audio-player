@@ -7,19 +7,19 @@ class LedMatrixDiagnosticTopIO extends Bundle {
   val cpuResetN = Input(Bool())
   
   // All 16 Switches on Nexys A7:
-  // SW[7:0]   -> Drives PMOD JC (Columns 0..7)
-  // SW[15:8]  -> Drives PMOD JD (Rows 0..7)
+  // SW[7:0]   -> Drives Rows 1..8
+  // SW[15:8]  -> Drives Columns 1..8
   val sw = Input(UInt(16.W))
 
   // Push buttons for polarity/mode overrides:
-  // BTNU: Invert JD polarity (active-1 vs active-0)
-  // BTND: Invert JC polarity (active-1 vs active-0)
+  // BTNU: Invert Rows polarity
+  // BTND: Invert Cols polarity
   // BTNC: Toggle between Direct Static DC Mode (0) and 1 kHz Multiplexing Mode (1)
   val btnU = Input(Bool())
   val btnD = Input(Bool())
   val btnC = Input(Bool())
 
-  // PMOD JC: 8 Column Pins
+  // PMOD JC: 8 Pins
   val jc1  = Output(Bool())
   val jc2  = Output(Bool())
   val jc3  = Output(Bool())
@@ -29,7 +29,7 @@ class LedMatrixDiagnosticTopIO extends Bundle {
   val jc9  = Output(Bool())
   val jc10 = Output(Bool())
 
-  // PMOD JD: 8 Row Pins
+  // PMOD JD: 8 Pins
   val jd1  = Output(Bool())
   val jd2  = Output(Bool())
   val jd3  = Output(Bool())
@@ -61,16 +61,16 @@ class LedMatrixDiagnosticTop extends RawModule {
     // Polarity toggles
     val btnUSync = RegNext(RegNext(io.btnU))
     val btnUPrev = RegNext(btnUSync)
-    val invertJD = RegInit(false.B)
+    val invertRows = RegInit(false.B)
     when(btnUSync && !btnUPrev) {
-      invertJD := !invertJD
+      invertRows := !invertRows
     }
 
     val btnDSync = RegNext(RegNext(io.btnD))
     val btnDPrev = RegNext(btnDSync)
-    val invertJC = RegInit(false.B)
+    val invertCols = RegInit(false.B)
     when(btnDSync && !btnDPrev) {
-      invertJC := !invertJC
+      invertCols := !invertCols
     }
 
     // Multiplexing counter: 100MHz / 12500 = 8 kHz row tick (1 kHz full frame)
@@ -88,56 +88,51 @@ class LedMatrixDiagnosticTop extends RawModule {
       scanRow := scanRow + 1.U
     }
 
-    val jcOut = Wire(Vec(8, Bool()))
-    val jdOut = Wire(Vec(8, Bool()))
+    val logicalRows = Wire(UInt(8.W))
+    val logicalCols = Wire(UInt(8.W))
 
     when(!muxMode) {
       // MODE 0: Direct Static DC Control
-      // Each switch directly forces high/low on the corresponding PMOD pin
-      // SW[7:0]  -> JC[0..7] (Default: 1 = 3.3V, 0 = 0V)
-      // SW[15:8] -> JD[0..7] (Default: 1 = 0V / GND, 0 = 3.3V)
-      for (i <- 0 until 8) {
-        val rawJC = io.sw(i)
-        jcOut(i) := Mux(invertJC, !rawJC, rawJC)
-
-        val rawJD = io.sw(i + 8)
-        jdOut(i) := Mux(invertJD, rawJD, !rawJD)
-      }
+      // SW[7:0]  -> Rows 1..8
+      // SW[15:8] -> Cols 1..8
+      val rawRows = io.sw(7, 0)
+      val rawCols = io.sw(15, 8)
+      logicalRows := rawRows ^ Fill(8, invertRows)
+      logicalCols := rawCols ^ Fill(8, invertCols)
     }.otherwise {
       // MODE 1: Multiplexed Matrix Mode
-      // Only the active scan row is grounded (0V), others 3.3V
-      // Columns lit according to SW[7:0] for any row enabled in SW[15:8]
-      val rowEnabled = io.sw(scanRow + 8.U)
-      for (c <- 0 until 8) {
-        val colActive = rowEnabled && io.sw(c)
-        jcOut(c) := Mux(invertJC, !colActive, colActive)
-      }
+      // Active scanRow grounded if enabled in SW[7:0]
+      // Columns lit according to SW[15:8]
+      val rowEnabled = io.sw(7, 0)(scanRow)
+      val activeRowMask = Mux(rowEnabled, (1.U(8.W) << scanRow), 0.U(8.W))
+      val activeColMask = Mux(rowEnabled, io.sw(15, 8), 0.U(8.W))
 
-      for (r <- 0 until 8) {
-        val rowIsActive = (scanRow === r.U) && io.sw(r + 8)
-        jdOut(r) := Mux(invertJD, rowIsActive, !rowIsActive)
-      }
+      logicalRows := activeRowMask ^ Fill(8, invertRows)
+      logicalCols := activeColMask ^ Fill(8, invertCols)
     }
 
-    // Drive PMOD JC
-    io.jc1  := jcOut(0)
-    io.jc2  := jcOut(1)
-    io.jc3  := jcOut(2)
-    io.jc4  := jcOut(3)
-    io.jc7  := jcOut(4)
-    io.jc8  := jcOut(5)
-    io.jc9  := jcOut(6)
-    io.jc10 := jcOut(7)
+    // Physical Matrix Driver Module (single source of truth for wiring/polarities)
+    val driver = Module(new LedMatrixDriver)
+    driver.io.rows := logicalRows
+    driver.io.cols := logicalCols
 
-    // Drive PMOD JD
-    io.jd1  := jdOut(0)
-    io.jd2  := jdOut(1)
-    io.jd3  := jdOut(2)
-    io.jd4  := jdOut(3)
-    io.jd7  := jdOut(4)
-    io.jd8  := jdOut(5)
-    io.jd9  := jdOut(6)
-    io.jd10 := jdOut(7)
+    io.jc1  := driver.io.jc1
+    io.jc2  := driver.io.jc2
+    io.jc3  := driver.io.jc3
+    io.jc4  := driver.io.jc4
+    io.jc7  := driver.io.jc7
+    io.jc8  := driver.io.jc8
+    io.jc9  := driver.io.jc9
+    io.jc10 := driver.io.jc10
+
+    io.jd1  := driver.io.jd1
+    io.jd2  := driver.io.jd2
+    io.jd3  := driver.io.jd3
+    io.jd4  := driver.io.jd4
+    io.jd7  := driver.io.jd7
+    io.jd8  := driver.io.jd8
+    io.jd9  := driver.io.jd9
+    io.jd10 := driver.io.jd10
   }
 }
 
