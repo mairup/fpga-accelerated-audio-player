@@ -49,22 +49,33 @@ Nexys A7 PMOD connectors have 12 pins per port:
 
 ---
 
-## 3. Systematic 16-Switch Diagnostic Design
+## 4. Final Verified Hardware Pinout (Nexys A7 PMOD JC & JD)
 
-To eliminate all guesswork, we build a diagnostic module utilizing all 16 switches (`SW0`–`SW15`):
+The empirical diagnostic observations resolved the full physical routing:
+- **Rows**: Anodes (Active-HIGH / +3.3V)
+- **Columns**: Cathodes (Active-LOW / 0V / Ground)
 
-```
-SW[7:0]  (Switches 0 to 7)  --> Direct bit-control over PMOD JC (Columns 0 to 7)
-SW[15:8] (Switches 8 to 15) --> Direct bit-control over PMOD JD (Rows 0 to 7)
-```
+| Logical Line | Type | Polarity | Nexys A7 PMOD Pin | Header Pin # |
+| :--- | :--- | :--- | :--- | :--- |
+| **Row 1 (R1)** | Anode | Active HIGH (`1`) | `JC4` | PMOD JC Pin 4 |
+| **Row 2 (R2)** | Anode | Active HIGH (`1`) | `JD8` | PMOD JD Pin 8 |
+| **Row 3 (R3)** | Anode | Active HIGH (`1`) | `JD10` | PMOD JD Pin 10 |
+| **Row 4 (R4)** | Anode | Active HIGH (`1`) | `JC9` | PMOD JC Pin 9 |
+| **Row 5 (R5)** | Anode | Active HIGH (`1`) | `JD1` | PMOD JD Pin 1 |
+| **Row 6 (R6)** | Anode | Active HIGH (`1`) | `JC8` | PMOD JC Pin 8 |
+| **Row 7 (R7)** | Anode | Active HIGH (`1`) | `JC2` | PMOD JC Pin 2 |
+| **Row 8 (R8)** | Anode | Active HIGH (`1`) | `JC1` | PMOD JC Pin 1 |
+| **Col 1 (C1)** | Cathode | Active LOW (`0`) | `JC10` | PMOD JC Pin 10 |
+| **Col 2 (C2)** | Cathode | Active LOW (`0`) | `JC3` | PMOD JC Pin 3 |
+| **Col 3 (C3)** | Cathode | Active LOW (`0`) | `JD4` | PMOD JD Pin 4 |
+| **Col 4 (C4)** | Cathode | Active LOW (`0`) | `JC7` | PMOD JC Pin 7 |
+| **Col 5 (C5)** | Cathode | Active LOW (`0`) | `JD7` | PMOD JD Pin 7 |
+| **Col 6 (C6)** | Cathode | Active LOW (`0`) | `JD3` | PMOD JD Pin 3 |
+| **Col 7 (C7)** | Cathode | Active LOW (`0`) | `JD2` | PMOD JD Pin 2 |
+| **Col 8 (C8)** | Cathode | Active LOW (`0`) | `JD9` | PMOD JD Pin 9 |
 
-### Modes:
-1. **Direct Static Pin Control (SW15..SW0)**:
-   - Zero clock multiplexing. Pure DC signals.
-   - Flip **SW0 UP** -> `JC1` goes to 3.3V.
-   - Flip **SW8 UP** -> `JD1` goes to 0V (GND).
-   - This lets you test **one individual wire and one LED coordinate** at a time with 100% certainty.
-2. **Polarity Toggle**:
-   - Verify whether your matrix is Common Anode or Common Cathode.
-3. **PMOD Pin Identifier**:
-   - The onboard 16 LEDs mirror `SW[15:0]`, showing exactly which FPGA pin is currently driven.
+---
+
+## 5. Unified Driver (`LedMatrixDriver.scala`)
+
+The driver encapsulates this mapping as the single source of truth for both `LedMatrixTestTop` and the DSP visualizer, supporting hardware orientation selection (upright, 90° CW, 180°, 270° CW) via `SW3`/`SW4`.
