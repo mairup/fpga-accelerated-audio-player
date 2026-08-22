@@ -3,25 +3,27 @@ package dsp.visualizer
 import chisel3._
 import chisel3.util._
 
-class VisualizerTopIO(val numBins: Int) extends Bundle {
+class VisualizerTopIO(val numBins: Int, val outWidth: Int = 24) extends Bundle {
   val sampleIn    = Input(SInt(32.W))
   val sampleValid = Input(Bool())
-  val catVolume   = Output(Vec(numBins, UInt(32.W)))
+  val catVolume   = Output(Vec(numBins, UInt(outWidth.W)))
   val newUpdate   = Output(Bool())
 }
 
 class VisualizerTop(
-  val fftSize:         Int = 1024,
-  val numBins:         Int = 8,
-  val framesPerWindow: Int = 8
+  val fftSize:  Int = 1024,
+  val numBins:  Int = 8,
+  val fftWidth: Int = 12,
+  val outWidth: Int = 24
 ) extends Module {
-  val io = IO(new VisualizerTopIO(numBins))
+  val io = IO(new VisualizerTopIO(numBins, outWidth))
 
-  val buffer = Module(new SampleBuffer(fftSize))
-  buffer.io.sampleIn    := io.sampleIn
+  val buffer = Module(new SampleBuffer(fftSize, fftWidth))
+  // Truncate 32-bit I2S sample to 12-bit signed
+  buffer.io.sampleIn    := io.sampleIn(31, 32 - fftWidth).asSInt
   buffer.io.sampleValid := io.sampleValid
 
-  val fft = Module(new FftCore(fftSize, 32))
+  val fft = Module(new FftCore(fftSize, fftWidth))
   fft.io.clock := clock
   fft.io.reset := reset
   fft.io.di_en := buffer.io.burstValid
@@ -38,13 +40,13 @@ class VisualizerTop(
     }
   }
 
-  val binner = Module(new FFTMagnitudeBinner(fftSize, numBins))
+  val binner = Module(new FFTMagnitudeBinner(fftSize, numBins, fftWidth, outWidth))
   binner.io.re        := fft.io.do_re.asSInt
   binner.io.im        := fft.io.do_im.asSInt
   binner.io.valid     := fft.io.do_en
   binner.io.frameDone := frameDone
 
-  val tracker = Module(new FFTTemporalTracker(numBins, framesPerWindow))
+  val tracker = Module(new FFTTemporalTracker(numBins, outWidth))
   tracker.io.binMagnitudes := binner.io.binMagnitudes
   tracker.io.valid         := binner.io.binValid
 

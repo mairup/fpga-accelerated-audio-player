@@ -3,7 +3,7 @@ package dsp.visualizer
 import chisel3._
 import chisel3.util.HasBlackBoxResource
 
-class FftCore(val n: Int = 1024, val width: Int = 32) extends BlackBox with HasBlackBoxResource {
+class FftCore(val n: Int = 1024, val width: Int = 12) extends BlackBox with HasBlackBoxResource {
   override val desiredName = s"R22SdfFFT${n}"
 
   val io = IO(new Bundle {

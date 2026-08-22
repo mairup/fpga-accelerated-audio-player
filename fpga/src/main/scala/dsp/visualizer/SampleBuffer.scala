@@ -3,21 +3,21 @@ package dsp.visualizer
 import chisel3._
 import chisel3.util._
 
-class SampleBufferIO(val depth: Int) extends Bundle {
-  val sampleIn    = Input(SInt(32.W))
+class SampleBufferIO(val depth: Int, val dataWidth: Int = 12) extends Bundle {
+  val sampleIn    = Input(SInt(dataWidth.W))
   val sampleValid = Input(Bool())
 
-  val burstOut    = Output(SInt(32.W))
+  val burstOut    = Output(SInt(dataWidth.W))
   val burstValid  = Output(Bool())
   val burstDone   = Output(Bool())
 }
 
-class SampleBuffer(val depth: Int = 1024) extends Module {
-  val io = IO(new SampleBufferIO(depth))
+class SampleBuffer(val depth: Int = 1024, val width: Int = 12) extends Module {
+  val io = IO(new SampleBufferIO(depth, width))
 
   val addrWidth = log2Ceil(depth)
 
-  val mem = SyncReadMem(depth, SInt(32.W))
+  val mem = SyncReadMem(depth, SInt(width.W))
 
   val writePtr   = RegInit(0.U(addrWidth.W))
   val readPtr    = RegInit(0.U(addrWidth.W))

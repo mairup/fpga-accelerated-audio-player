@@ -7,8 +7,8 @@ import org.scalatest.matchers.should.Matchers
 
 class FFTTemporalTrackerSpec extends AnyFlatSpec with Matchers with ChiselScalatestTester {
 
-  val testBins   = 4
-  val testWindow = 4
+  val testBins  = 4
+  val testWidth = 24
 
   def feedFrame(dut: FFTTemporalTracker, magnitudes: Seq[Int]): Unit = {
     for (i <- 0 until dut.numBins) {
@@ -21,8 +21,8 @@ class FFTTemporalTrackerSpec extends AnyFlatSpec with Matchers with ChiselScalat
 
   behavior of "FFTTemporalTracker"
 
-  it should "output zeros before the first window completes" in {
-    test(new FFTTemporalTracker(testBins, testWindow)) { dut =>
+  it should "output zeros initially" in {
+    test(new FFTTemporalTracker(testBins, testWidth)) { dut =>
       dut.io.valid.poke(false.B)
       for (i <- 0 until testBins) dut.io.binMagnitudes(i).poke(0.U)
 
@@ -36,21 +36,14 @@ class FFTTemporalTrackerSpec extends AnyFlatSpec with Matchers with ChiselScalat
     }
   }
 
-  it should "latch peak values after framesPerWindow frames" in {
-    test(new FFTTemporalTracker(testBins, testWindow)) { dut =>
+  it should "jump immediately on fast attack and assert newUpdate" in {
+    test(new FFTTemporalTracker(testBins, testWidth)) { dut =>
       dut.io.valid.poke(false.B)
       for (i <- 0 until testBins) dut.io.binMagnitudes(i).poke(0.U)
       dut.clock.step(1)
 
-      feedFrame(dut, Seq(100, 200, 300, 400))
-      feedFrame(dut, Seq(500, 100, 100, 100))
-      feedFrame(dut, Seq(50,  50,  50,  50))
+      feedFrame(dut, Seq(500, 200, 300, 800))
 
-      for (i <- 0 until testBins) dut.io.catVolume(i).expect(0.U)
-
-      feedFrame(dut, Seq(10, 10, 10, 800))
-
-      dut.io.newUpdate.expect(true.B)
       dut.io.catVolume(0).expect(500.U)
       dut.io.catVolume(1).expect(200.U)
       dut.io.catVolume(2).expect(300.U)
@@ -58,23 +51,23 @@ class FFTTemporalTrackerSpec extends AnyFlatSpec with Matchers with ChiselScalat
     }
   }
 
-  it should "reset peaks after each window" in {
-    test(new FFTTemporalTracker(testBins, testWindow)) { dut =>
+  it should "exponentially decay by 25% on subsequent lower frames" in {
+    test(new FFTTemporalTracker(testBins, testWidth)) { dut =>
       dut.io.valid.poke(false.B)
       for (i <- 0 until testBins) dut.io.binMagnitudes(i).poke(0.U)
       dut.clock.step(1)
 
-      for (_ <- 0 until testWindow) {
-        feedFrame(dut, Seq(1000, 1000, 1000, 1000))
-      }
-
+      // Initial peak of 1000
+      feedFrame(dut, Seq(1000, 1000, 1000, 1000))
       dut.io.catVolume(0).expect(1000.U)
 
-      for (_ <- 0 until testWindow) {
-        feedFrame(dut, Seq(50, 50, 50, 50))
-      }
+      // Next frame with 0 input: decay by 25% (1000 - 250 = 750)
+      feedFrame(dut, Seq(0, 0, 0, 0))
+      dut.io.catVolume(0).expect(750.U)
 
-      dut.io.catVolume(0).expect(50.U)
+      // Next frame: 750 - (750 >> 2) = 750 - 187 = 563
+      feedFrame(dut, Seq(0, 0, 0, 0))
+      dut.io.catVolume(0).expect(563.U)
     }
   }
 }

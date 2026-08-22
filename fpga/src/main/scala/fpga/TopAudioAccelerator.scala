@@ -45,8 +45,28 @@ class TopAudioAccelerator extends RawModule {
   val clock = IO(Input(Clock()))
   val io = IO(new TopAudioAcceleratorIO)
 
-  def quantizeBandToAscii(magnitude: UInt): UInt = magnitude(31, 29) + '1'.U(8.W)
-
+  def quantizeBandToAscii(magnitude: UInt, bandIdx: Int): UInt = {
+    val shift = bandIdx match {
+      case 0 => 0
+      case 1 => 0
+      case 2 => 1
+      case 3 => 2
+      case 4 => 3
+      case 5 => 4
+      case 6 => 5
+      case _ => 6
+    }
+    val norm = magnitude >> shift.U
+    val level = Mux(norm >= 256.U, 7.U,
+                Mux(norm >= 128.U, 6.U,
+                Mux(norm >= 64.U,  5.U,
+                Mux(norm >= 32.U,  4.U,
+                Mux(norm >= 16.U,  3.U,
+                Mux(norm >= 8.U,   2.U,
+                Mux(norm >= 4.U,   1.U, 0.U)))))))
+    level + '1'.U(8.W)
+  }
+  def toHexAscii(nibble: UInt): UInt = Mux(nibble < 10.U, nibble + '0'.U(8.W), nibble - 10.U + 'A'.U(8.W))
 
   withClockAndReset(clock, !io.cpuResetN) {
     val i2sController = Module(new I2sController)
@@ -67,28 +87,51 @@ class TopAudioAccelerator extends RawModule {
     audioPipeline.io.swChorus := io.swChorus
     audioPipeline.io.swPhaser := io.swPhaser
 
-    val visualizer = Module(new dsp.visualizer.VisualizerTop(1024, 8, 8))
+    val visualizer = Module(new dsp.visualizer.VisualizerTop(1024, 8, 12, 24))
     visualizer.io.sampleIn := i2sController.io.pcmRx
     visualizer.io.sampleValid := i2sController.io.pcmRxValid
 
     val absSample = Mux(i2sController.io.pcmRx < 0.S, (-i2sController.io.pcmRx).asUInt, i2sController.io.pcmRx.asUInt)
 
+    val peakVol = RegInit(0.U(5.W))
+    when(i2sController.io.pcmRxValid) {
+      when(absSample(30, 26) > peakVol) {
+        peakVol := absSample(30, 26)
+      }
+    }
+
     val timer10Hz = RegInit(0.U(24.W))
     val trigger10Hz = WireDefault(false.B)
-    val latchedBands = RegInit(VecInit(Seq.fill(8)(0.U(32.W))))
+    val latchedBands = RegInit(VecInit(Seq.fill(8)(0.U(24.W))))
+    val latchedVol = RegInit(0.U(5.W))
 
     when(timer10Hz === 9_999_999.U) {
       timer10Hz := 0.U
       trigger10Hz := true.B
       latchedBands := visualizer.io.catVolume
+      latchedVol := peakVol
+      peakVol := 0.U
     }.otherwise {
       timer10Hz := timer10Hz + 1.U
     }
 
-    val bandAscii = VecInit((0 until 8).map(i => quantizeBandToAscii(latchedBands(i))))
-    val msgBuf = VecInit(bandAscii.toSeq ++ Seq('\r'.U(8.W), '\n'.U(8.W)))
-    val msgLength = 10
-    val msgIndex = RegInit(0.U(4.W))
+    val bandAscii = VecInit((0 until 8).map(i => quantizeBandToAscii(latchedBands(i), i)))
+    val volHexHigh = toHexAscii(Cat(0.U(3.W), latchedVol(4)))
+    val volHexLow  = toHexAscii(latchedVol(3, 0))
+
+    val msgBuf = VecInit(
+      bandAscii.toSeq ++ Seq(
+        ' '.U(8.W),
+        'V'.U(8.W),
+        ':'.U(8.W),
+        volHexHigh,
+        volHexLow,
+        '\r'.U(8.W),
+        '\n'.U(8.W)
+      )
+    )
+    val msgLength = 15
+    val msgIndex = RegInit(0.U(5.W))
     val msgTransmitting = RegInit(false.B)
 
     when(trigger10Hz && !msgTransmitting && uartTransmitter.io.transmitterReady) {

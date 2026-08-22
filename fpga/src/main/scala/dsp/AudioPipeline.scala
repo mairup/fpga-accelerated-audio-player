@@ -31,19 +31,19 @@ class AudioPipeline extends Module {
   val enableChorus    = fxMasterEnable && io.swChorus
   val enablePhaser    = fxMasterEnable && io.swPhaser
 
-  val overdrive = Module(new OverdriveChisel)
+  // val overdrive = Module(new OverdriveChisel)
   // val fuzz      = Module(new FuzzChisel)
   // val chorus    = Module(new ChorusChisel)
   // val phaser    = Module(new PhaserChisel)
 
-  overdrive.io.sampleIn    := io.sampleIn
-  overdrive.io.sampleValid := io.sampleValid
-  val stage1Sample = Mux(enableOverdrive, overdrive.io.sampleOut, io.sampleIn)
-  val stage1Valid  = Mux(enableOverdrive, overdrive.io.outValid, io.sampleValid)
+  // overdrive.io.sampleIn    := io.sampleIn
+  // overdrive.io.sampleValid := io.sampleValid
+  // val stage1Sample = Mux(enableOverdrive, overdrive.io.sampleOut, io.sampleIn)
+  // val stage1Valid  = Mux(enableOverdrive, overdrive.io.outValid, io.sampleValid)
 
-  // Bypass unused effects to speed up FPGA synthesis & routing
-  io.sampleOut := stage1Sample
-  io.outValid  := stage1Valid
+  // All effects bypassed — direct passthrough for faster synthesis
+  io.sampleOut := io.sampleIn
+  io.outValid  := io.sampleValid
 
   io.ledFxMaster  := fxMasterEnable
   io.ledOverdrive := enableOverdrive
