@@ -11,13 +11,13 @@ class LedMatrixDiagnosticTopIO extends Bundle {
   // SW[15:8]  -> Drives Columns 1..8
   val sw = Input(UInt(16.W))
 
-  // Push buttons for polarity/mode overrides:
-  // BTNU: Invert Rows polarity
-  // BTND: Invert Cols polarity
-  // BTNC: Toggle between Direct Static DC Mode (0) and 1 kHz Multiplexing Mode (1)
-  val btnU = Input(Bool())
-  val btnD = Input(Bool())
-  val btnC = Input(Bool())
+   // Push buttons for polarity/mode overrides:
+   // BTNU: Invert Rows polarity
+   // BTND: Invert Cols polarity
+   // BTNC: Toggle between Direct Static DC Mode (0) and 1 kHz Multiplexing Mode (1)
+   val btnU = Input(Bool())
+   val btnD = Input(Bool())
+   val btnC = Input(Bool())
 
   // PMOD JC: 8 Pins
   val jc1  = Output(Bool())
@@ -93,12 +93,10 @@ class LedMatrixDiagnosticTop extends RawModule {
 
     when(!muxMode) {
       // MODE 0: Direct Static DC Control
-      // SW[7:0]  -> Rows 1..8
-      // SW[15:8] -> Cols 1..8
-      val rawRows = io.sw(7, 0)
-      val rawCols = io.sw(15, 8)
-      logicalRows := rawRows ^ Fill(8, invertRows)
-      logicalCols := rawCols ^ Fill(8, invertCols)
+      // SW[7:0]  -> Rows 1..8 (cathode active when 0)
+      // SW[15:8] -> Cols 1..8 (anode active when 1)
+      logicalRows := io.sw(7, 0)
+      logicalCols := io.sw(15, 8)
     }.otherwise {
       // MODE 1: Multiplexed Matrix Mode
       // Active scanRow grounded if enabled in SW[7:0]
@@ -115,6 +113,8 @@ class LedMatrixDiagnosticTop extends RawModule {
     val driver = Module(new LedMatrixDriver)
     driver.io.rows := logicalRows
     driver.io.cols := logicalCols
+    // Display orientation: default 0.U (upright) for 1-to-1 physical diagnostic
+    driver.io.orientation := 0.U
 
     io.jc1  := driver.io.jc1
     io.jc2  := driver.io.jc2

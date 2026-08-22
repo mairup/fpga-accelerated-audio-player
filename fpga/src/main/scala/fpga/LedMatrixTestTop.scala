@@ -6,7 +6,8 @@ import chisel3.util._
 class LedMatrixTestTopIO extends Bundle {
   val cpuResetN = Input(Bool())
   val swPattern = Input(UInt(2.W)) // SW0, SW1
-  val swSpeed   = Input(Bool())     // SW2 (fast/slow)
+  val swSpeed   = Input(Bool())     // SW2
+  val orientation = Input(UInt(2.W)) // SW3, SW4 (1 = upright, 2 = 90 deg CW, 3 = 180 deg, 4 = 270 deg CW)
 
   // PMOD JC: 8 Column Anodes (Active HIGH: 1 = ON)
   val jc1  = Output(Bool())
@@ -108,29 +109,30 @@ class LedMatrixTestTop extends RawModule {
       }
     }
 
-    // 4. Drive PMOD JC (Columns / Anodes -> Active HIGH: 1 = ON)
-    io.jc1  := colAnodes(0)
-    io.jc2  := colAnodes(1)
-    io.jc3  := colAnodes(2)
-    io.jc4  := colAnodes(3)
-    io.jc7  := colAnodes(4)
-    io.jc8  := colAnodes(5)
-    io.jc9  := colAnodes(6)
-    io.jc10 := colAnodes(7)
+    // 4. Unified matrix driver for correct PMOD wiring
+    val driver = Module(new LedMatrixDriver)
+    driver.io.rows := (1.U(8.W) << activeRow)
+    driver.io.cols := colAnodes.asUInt
+    driver.io.orientation := io.orientation
 
-    // 5. Drive PMOD JD (Rows / Cathodes -> Active LOW: 0 = GROUND / ON, 1 = OFF)
-    val rowCathodes = Wire(Vec(8, Bool()))
-    for (r <- 0 until 8) {
-      rowCathodes(r) := !(activeRow === r.U)
-    }
-    io.jd1  := rowCathodes(0)
-    io.jd2  := rowCathodes(1)
-    io.jd3  := rowCathodes(2)
-    io.jd4  := rowCathodes(3)
-    io.jd7  := rowCathodes(4)
-    io.jd8  := rowCathodes(5)
-    io.jd9  := rowCathodes(6)
-    io.jd10 := rowCathodes(7)
+    // PMOD JC and JD are now driven by the driver
+    io.jc1  := driver.io.jc1
+    io.jc2  := driver.io.jc2
+    io.jc3  := driver.io.jc3
+    io.jc4  := driver.io.jc4
+    io.jc7  := driver.io.jc7
+    io.jc8  := driver.io.jc8
+    io.jc9  := driver.io.jc9
+    io.jc10 := driver.io.jc10
+
+    io.jd1  := driver.io.jd1
+    io.jd2  := driver.io.jd2
+    io.jd3  := driver.io.jd3
+    io.jd4  := driver.io.jd4
+    io.jd7  := driver.io.jd7
+    io.jd8  := driver.io.jd8
+    io.jd9  := driver.io.jd9
+    io.jd10 := driver.io.jd10
   }
 }
 

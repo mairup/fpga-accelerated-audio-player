@@ -10,14 +10,18 @@ PCF="${PCF:-constraints/nexys_a7_50t.pcf}"
 USE_NEXTPNR="${USE_NEXTPNR:-1}"
 
 echo "=== Step 0: Cleaning Old Build Artifacts ==="
-rm -f "$TOP.eblif" "$TOP.net" "$TOP.place" "$TOP.route" "$TOP.fasm" "$TOP.frames" "$TOP.bit" "$TOP.json" constraints.place HelloWorld.v HelloWorld.bit "$TOP.v" DualPort*.v
+rm -f "$TOP.eblif" "$TOP.net" "$TOP.place" "$TOP.route" "$TOP.fasm" "$TOP.frames" "$TOP.bit" "$TOP.json" constraints.place HelloWorld.v HelloWorld.bit TopAudioAccelerator.v LedMatrixDiagnosticTop.v LedMatrixTestTop.v DualPort*.v
 
 echo "=== Step 1: Scala Chisel Verilog Generation ==="
 sbt "runMain fpga.${TOP}App"
 
 if [ "$USE_NEXTPNR" = "1" ] && [ -f "$XDC" ]; then
     echo "=== Step 2: Open-Source Yosys Synthesis (NextPNR flow) ==="
-    yosys -p "synth_xilinx -flatten -nodsp -top $TOP; write_json $TOP.json" *.v
+    V_SRCS="$TOP.v"
+    if [ "$TOP" = "TopAudioAccelerator" ] && [ -f "R22SdfFFT1024.v" ]; then
+        V_SRCS="$V_SRCS R22SdfFFT1024.v"
+    fi
+    yosys -p "synth_xilinx -flatten -nodsp -top $TOP; write_json $TOP.json" $V_SRCS
 
     echo "=== Step 3: Fast NextPNR Placement & Routing (Heap Placer) ==="
     nextpnr-xilinx --chipdb /opt/conda/envs/xc7/share/nextpnr-xilinx/xc7a100tcsg324-1.bin --json "$TOP.json" --fasm "$TOP.fasm" --xdc "$XDC" --placer heap --freq 4 --timing-allow-fail

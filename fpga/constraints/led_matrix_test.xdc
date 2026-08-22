@@ -19,6 +19,14 @@ set_property IOSTANDARD LVCMOS33 [get_ports {io_swPattern[1]}]
 set_property LOC M13 [get_ports io_swSpeed]
 set_property IOSTANDARD LVCMOS33 [get_ports io_swSpeed]
 
+## SW3 (Orientation bit 0)
+set_property LOC R15 [get_ports {io_orientation[0]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {io_orientation[0]}]
+
+## SW4 (Orientation bit 1)
+set_property LOC R17 [get_ports {io_orientation[1]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {io_orientation[1]}]
+
 ## Onboard Status LEDs (LED0-LED1: Pattern, LED2-LED9: Active Row)
 set_property LOC H17 [get_ports {io_ledPattern[0]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {io_ledPattern[0]}]

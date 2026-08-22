@@ -10,11 +10,16 @@ ifeq (fpga,$(firstword $(MAKECMDGOALS)))
   $(eval $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)):;@:)
 endif
 
-.PHONY: help fpga esp client clean
+.PHONY: all help fpga esp client clean
+
+all:
+	@$(MAKE) -j2 esp fpga
+	@$(MAKE) client
 
 help:
 	@echo "FPGA Accelerated Audio Player"
 	@echo "============================="
+	@echo "make             - Deploy ESP, build & flash FPGA in parallel, then start client"
 	@echo "make fpga        - Build & flash FPGA bitstream to $(BOARD)"
 	@echo "make fpga build  - Build FPGA bitstream only"
 	@echo "make fpga flash  - Flash FPGA bitstream to $(BOARD) only"

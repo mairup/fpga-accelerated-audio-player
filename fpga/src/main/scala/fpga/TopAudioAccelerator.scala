@@ -45,9 +45,8 @@ class TopAudioAccelerator extends RawModule {
   val clock = IO(Input(Clock()))
   val io = IO(new TopAudioAcceleratorIO)
 
-  def toHexChar(nibble: UInt): UInt = {
-    Mux(nibble < 10.U, nibble + 48.U, nibble + 55.U)
-  }
+  def quantizeBandToAscii(magnitude: UInt): UInt = magnitude(31, 29) + '1'.U(8.W)
+
 
   withClockAndReset(clock, !io.cpuResetN) {
     val i2sController = Module(new I2sController)
@@ -72,19 +71,6 @@ class TopAudioAccelerator extends RawModule {
     visualizer.io.sampleIn := i2sController.io.pcmRx
     visualizer.io.sampleValid := i2sController.io.pcmRxValid
 
-    def wordToHexChars(w: UInt): Seq[UInt] = {
-      Seq(
-        toHexChar(w(31, 28)),
-        toHexChar(w(27, 24)),
-        toHexChar(w(23, 20)),
-        toHexChar(w(19, 16)),
-        toHexChar(w(15, 12)),
-        toHexChar(w(11, 8)),
-        toHexChar(w(7, 4)),
-        toHexChar(w(3, 0))
-      )
-    }
-
     val absSample = Mux(i2sController.io.pcmRx < 0.S, (-i2sController.io.pcmRx).asUInt, i2sController.io.pcmRx.asUInt)
 
     val timer10Hz = RegInit(0.U(24.W))
@@ -99,15 +85,10 @@ class TopAudioAccelerator extends RawModule {
       timer10Hz := timer10Hz + 1.U
     }
 
-    val bandHexChars = (0 until 8).map(i => wordToHexChars(latchedBands(i)))
-    val msgSeq = (0 until 8).flatMap { i =>
-      if (i < 7) bandHexChars(i) :+ ' '.U(8.W)
-      else bandHexChars(i)
-    } ++ Seq('\r'.U(8.W), '\n'.U(8.W))
-
-    val msgBuf = VecInit(msgSeq)
-    val msgLength = msgSeq.length
-    val msgIndex = RegInit(0.U(7.W))
+    val bandAscii = VecInit((0 until 8).map(i => quantizeBandToAscii(latchedBands(i))))
+    val msgBuf = VecInit(bandAscii.toSeq ++ Seq('\r'.U(8.W), '\n'.U(8.W)))
+    val msgLength = 10
+    val msgIndex = RegInit(0.U(4.W))
     val msgTransmitting = RegInit(false.B)
 
     when(trigger10Hz && !msgTransmitting && uartTransmitter.io.transmitterReady) {
