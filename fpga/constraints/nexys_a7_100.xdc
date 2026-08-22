@@ -125,3 +125,58 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_audSd]
 set_property LOC D4 [get_ports io_txSerialPin]
 set_property IOSTANDARD LVCMOS33 [get_ports io_txSerialPin]
 
+## PMOD JC: 8 Pins (LED Matrix Anodes / Cathodes via LedMatrixDriver)
+## Top Row (pins 1-4)
+set_property LOC K1 [get_ports io_jc1]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc1]
+
+set_property LOC F6 [get_ports io_jc2]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc2]
+
+set_property LOC J2 [get_ports io_jc3]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc3]
+
+set_property LOC G6 [get_ports io_jc4]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc4]
+
+## Bottom Row (pins 7-10)
+set_property LOC E7 [get_ports io_jc7]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc7]
+
+set_property LOC J3 [get_ports io_jc8]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc8]
+
+set_property LOC J4 [get_ports io_jc9]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc9]
+
+set_property LOC E6 [get_ports io_jc10]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jc10]
+
+## PMOD JD: 8 Pins (LED Matrix Anodes / Cathodes via LedMatrixDriver)
+## Top Row (pins 1-4)
+set_property LOC H4 [get_ports io_jd1]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd1]
+
+set_property LOC H1 [get_ports io_jd2]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd2]
+
+set_property LOC G1 [get_ports io_jd3]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd3]
+
+set_property LOC G3 [get_ports io_jd4]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd4]
+
+## Bottom Row (pins 7-10)
+set_property LOC H2 [get_ports io_jd7]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd7]
+
+set_property LOC G4 [get_ports io_jd8]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd8]
+
+set_property LOC G2 [get_ports io_jd9]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd9]
+
+set_property LOC F3 [get_ports io_jd10]
+set_property IOSTANDARD LVCMOS33 [get_ports io_jd10]
+
+

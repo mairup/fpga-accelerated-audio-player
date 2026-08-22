@@ -39,6 +39,26 @@ class TopAudioAcceleratorIO extends Bundle {
   val ledVolume  = Output(UInt(5.W))
   val ledTestPwm  = Output(Bool())
   val ledTestTone = Output(Bool())
+
+  // PMOD JC: 8 Pins
+  val jc1  = Output(Bool())
+  val jc2  = Output(Bool())
+  val jc3  = Output(Bool())
+  val jc4  = Output(Bool())
+  val jc7  = Output(Bool())
+  val jc8  = Output(Bool())
+  val jc9  = Output(Bool())
+  val jc10 = Output(Bool())
+
+  // PMOD JD: 8 Pins
+  val jd1  = Output(Bool())
+  val jd2  = Output(Bool())
+  val jd3  = Output(Bool())
+  val jd4  = Output(Bool())
+  val jd7  = Output(Bool())
+  val jd8  = Output(Bool())
+  val jd9  = Output(Bool())
+  val jd10 = Output(Bool())
 }
 
 class TopAudioAccelerator extends RawModule {
@@ -218,6 +238,27 @@ class TopAudioAccelerator extends RawModule {
     io.ledRxValid := validStretch > 0.U
 
     io.ledVolume := absSample(30, 26)
+
+    // 8x8 LED Matrix Spectrum Visualizer on PMOD JC & JD
+    val matrixVisualizer = Module(new dsp.visualizer.LedMatrixVisualizer(100_000_000, 1000, 1))
+    matrixVisualizer.io.bandMagnitudes := visualizer.io.catVolume
+    io.jc1  := matrixVisualizer.io.jc1
+    io.jc2  := matrixVisualizer.io.jc2
+    io.jc3  := matrixVisualizer.io.jc3
+    io.jc4  := matrixVisualizer.io.jc4
+    io.jc7  := matrixVisualizer.io.jc7
+    io.jc8  := matrixVisualizer.io.jc8
+    io.jc9  := matrixVisualizer.io.jc9
+    io.jc10 := matrixVisualizer.io.jc10
+
+    io.jd1  := matrixVisualizer.io.jd1
+    io.jd2  := matrixVisualizer.io.jd2
+    io.jd3  := matrixVisualizer.io.jd3
+    io.jd4  := matrixVisualizer.io.jd4
+    io.jd7  := matrixVisualizer.io.jd7
+    io.jd8  := matrixVisualizer.io.jd8
+    io.jd9  := matrixVisualizer.io.jd9
+    io.jd10 := matrixVisualizer.io.jd10
   }
 }
 
