@@ -23,6 +23,7 @@ class FFTMagnitudeBinner(
   val io = IO(new FFTMagnitudeBinnerIO(numBins, dataWidth, outWidth))
 
   val halfN     = fftSize / 2
+  val maxBin    = VisualizerConfig.MaxFreqBin.min(halfN)
   val addrWidth = log2Ceil(fftSize)
 
   val binAccumulators = RegInit(VecInit(Seq.fill(numBins)(0.U(outWidth.W))))
@@ -44,7 +45,7 @@ class FFTMagnitudeBinner(
     binCounter
   }
 
-  val usefulBin = naturalIndex < halfN.U
+  val usefulBin = naturalIndex < maxBin.U
 
   // Frequency band mapping derived from VisualizerConfig.BandCutoffBins
   val cutoffs = VisualizerConfig.BandCutoffBins
@@ -56,7 +57,7 @@ class FFTMagnitudeBinner(
   .elsewhen(naturalIndex < cutoffs(4).U) { targetBinRaw := 4.U }
   .elsewhen(naturalIndex < cutoffs(5).U) { targetBinRaw := 5.U }
   .elsewhen(naturalIndex < cutoffs(6).U) { targetBinRaw := 6.U }
-  // Remaining naturalIndex bins (cutoffs(6) until halfN) map to band 7 (Air)
+  // Remaining naturalIndex bins (cutoffs(6) until maxBin) map to band 7 (Air)
 
   val targetBin = if (numBins == 8) targetBinRaw else Mux(targetBinRaw >= numBins.U, (numBins - 1).U, targetBinRaw)
 

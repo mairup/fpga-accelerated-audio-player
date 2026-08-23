@@ -34,14 +34,16 @@ object VisualizerConfig {
   //   - Band 6: 4500 Hz to 9000 Hz (Brilliance)
   //   - Band 7: 9000 Hz to 24000 Hz (Air)
   val BandCutoffsHz: Seq[Int] = Seq(140, 280, 560, 1125, 2250, 4500, 9000)
+  val MaxFreqHz:     Int      = 16_000
 
   // Compile-time conversion from Hz cutoffs to FFT bin index cutoffs:
   // e.g. [3, 6, 12, 24, 48, 96, 192]
   val BandCutoffBins: Seq[Int] = BandCutoffsHz.map(hz => math.round(hz / BinResolutionHz).toInt.max(1))
+  val MaxFreqBin:     Int      = math.round(MaxFreqHz / BinResolutionHz).toInt.min(FftSize / 2)
 
   // Number of FFT bins accumulated into each of the 8 frequency bands:
   val BandBinCounts: Seq[Int] = {
-    val boundaries = Seq(0) ++ BandCutoffBins ++ Seq(FftSize / 2)
+    val boundaries = Seq(0) ++ BandCutoffBins ++ Seq(MaxFreqBin)
     (0 until 8).map(i => (boundaries(i + 1) - boundaries(i)).max(1))
   }
 
@@ -57,10 +59,24 @@ object VisualizerConfig {
   //   0.75 ->  25% mean,  75% peak (recommended for punchier transients)
   //   0.85 ->  15% mean,  85% peak (very sharp, transient-focused)
   //   1.00 ->   0% mean, 100% peak (pure peak)
-  val PeakBlendFactor: Double = 0.66
+  val PeakBlendFactor: Double = 0.2
 
   // 8-bit fixed-point multiplier (0 to 256): round(PeakBlendFactor * 256)
   val PeakBlendMult: Int = math.round(PeakBlendFactor * 256.0).toInt.max(0).min(256)
+
+  // =========================================================================
+  // 2c. Fall / Decay Retention Factor (0.0 = instant drop, 1.0 = no decay)
+  // =========================================================================
+  // Percentage of energy retained from the previous frame (at ~46.88 Hz frame rate):
+  //   0.20 -> retains 20% per frame (very fast 80% drop per frame)
+  //   0.35 -> retains 35% per frame (fast 65% drop per frame)
+  //   0.50 -> retains 50% per frame (50% drop per frame, equivalent to old >> 1)
+  //   0.75 -> retains 75% per frame (25% drop per frame)
+  //   0.85 -> retains 85% per frame (15% drop per frame, smooth lingering VU fall)
+  val DecayRetention: Double = 0.55
+
+  // 8-bit fixed-point multiplier (0 to 256): round(DecayRetention * 256)
+  val DecayMult: Int = math.round(DecayRetention * 256.0).toInt.max(0).min(256)
 
   // =========================================================================
   // 3. Sensitivity / Attenuation (Bit Shift per Band)
@@ -72,10 +88,10 @@ object VisualizerConfig {
   val BandShifts: Seq[Int] = Seq(
     4, // Band 0: Sub-bass (>> 3 = /8, attenuates high acoustic sub-bass energy)
     2, // Band 1: Bass (>> 1 = /2)
-    3, // Band 2: Low-mid (>> 1 = /2)
+    2, // Band 2: Low-mid (>> 1 = /2)
     1, // Band 3: Mid (>> 2 = /4)
-    2, // Band 4: Upper-mid (>> 2 = /4)
-    2, // Band 5: Presence (>> 1 = /2)
+    1, // Band 4: Upper-mid (>> 2 = /4)
+    1, // Band 5: Presence (>> 1 = /2)
     2, // Band 6: Brilliance (>> 1 = /2)
     3  // Band 7: Air (>> 3 = /8, normalizes wide bin accumulation)
   )
@@ -89,7 +105,7 @@ object VisualizerConfig {
   //
   //   - Lower GrowthFactor (e.g. 1.4 - 1.7): Jumpier / more responsive, bars bounce higher easily.
   //   - Higher GrowthFactor (e.g. 2.0 - 2.5): Steeper dynamic range, wider volume separation between quiet and loud peaks.
-  val BaseThreshold: Double = 2.4
+  val BaseThreshold: Double = 1.9
   val GrowthFactor:  Double = 1.7
 
   // Compile-time calculation of the 8 height thresholds (for 1 to 8 LEDs)

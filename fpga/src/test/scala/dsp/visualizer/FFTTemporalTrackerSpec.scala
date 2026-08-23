@@ -52,7 +52,7 @@ class FFTTemporalTrackerSpec extends AnyFlatSpec with Matchers with ChiselScalat
   }
 
   it should "exponentially decay on subsequent lower frames" in {
-    test(new FFTTemporalTracker(testBins, testWidth)) { dut =>
+    test(new FFTTemporalTracker(testBins, testWidth, decayMult = 128)) { dut =>
       dut.io.valid.poke(false.B)
       for (i <- 0 until testBins) dut.io.binMagnitudes(i).poke(0.U)
       dut.clock.step(1)

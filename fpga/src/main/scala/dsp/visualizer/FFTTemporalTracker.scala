@@ -12,8 +12,9 @@ class FFTTemporalTrackerIO(val numBins: Int, val dataWidth: Int = 24) extends Bu
 }
 
 class FFTTemporalTracker(
-  val numBins: Int = 8,
-  val width:   Int = 24
+  val numBins:   Int = 8,
+  val width:     Int = 24,
+  val decayMult: Int = VisualizerConfig.DecayMult
 ) extends Module {
   val io = IO(new FFTTemporalTrackerIO(numBins, width))
 
@@ -27,8 +28,16 @@ class FFTTemporalTracker(
 
   when(io.valid) {
     for (i <- 0 until numBins) {
-      // Smooth exponential decay: decay by  each frame
-      val decayed = outputRegs(i) - (outputRegs(i) >> 1)
+      // Fine fractional exponential decay: decompose into shift-add terms to avoid clocked DSP48E1
+      val decayed = if (decayMult >= 256) {
+        outputRegs(i)
+      } else if (decayMult <= 0) {
+        0.U(width.W)
+      } else {
+        val terms = (0 until 8).filter(b => ((decayMult >> b) & 1) == 1).map(b => outputRegs(i) >> (8 - b).U)
+        if (terms.isEmpty) 0.U(width.W)
+        else terms.reduce(_ +& _)(width - 1, 0)
+      }
       // Fast attack: jump to new peak immediately
       outputRegs(i) := Mux(io.binMagnitudes(i) > decayed, io.binMagnitudes(i), decayed)
     }
