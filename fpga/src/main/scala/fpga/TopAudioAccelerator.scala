@@ -19,19 +19,17 @@ class TopAudioAcceleratorIO extends Bundle {
   val swOutMaster  = Input(Bool())
   val swFxMaster   = Input(Bool())
   val swOverdrive  = Input(Bool())
-  val swFuzz       = Input(Bool())
   val swChorus     = Input(Bool())
-  val swPhaser     = Input(Bool())
+  val swTremolo    = Input(Bool())
   val swTestTone   = Input(Bool())
   val swTestPwm    = Input(Bool())
   val txSerialPin = Output(Bool())
 
-  val ledOutMaster  = Output(Bool())
-  val ledFxMaster   = Output(Bool())
-  val ledOverdrive  = Output(Bool())
-  val ledFuzz       = Output(Bool())
+  val ledOutMaster = Output(Bool())
+  val ledFxMaster  = Output(Bool())
+  val ledOverdrive = Output(Bool())
   val ledChorus    = Output(Bool())
-  val ledPhaser    = Output(Bool())
+  val ledTremolo   = Output(Bool())
 
   val ledBclkAct = Output(Bool())
   val ledWsAct   = Output(Bool())
@@ -64,9 +62,8 @@ class TopAudioAccelerator extends RawModule {
     audioPipeline.io.sampleValid := i2sController.io.pcmRxValid
     audioPipeline.io.swFxMaster := io.swFxMaster
     audioPipeline.io.swOverdrive := io.swOverdrive
-    audioPipeline.io.swFuzz := io.swFuzz
     audioPipeline.io.swChorus := io.swChorus
-    audioPipeline.io.swPhaser := io.swPhaser
+    audioPipeline.io.swTremolo := io.swTremolo
 
     val absSample = Mux(i2sController.io.pcmRx < 0.S, (-i2sController.io.pcmRx).asUInt, i2sController.io.pcmRx.asUInt)
     val onPeakTracker = RegInit(0.U(32.W))
@@ -183,11 +180,10 @@ class TopAudioAccelerator extends RawModule {
     io.ledOutMaster := io.swOutMaster
     io.ledFxMaster  := audioPipeline.io.ledFxMaster
     io.ledOverdrive := audioPipeline.io.ledOverdrive
-    io.ledFuzz      := audioPipeline.io.ledFuzz
-    io.ledChorus    := audioPipeline.io.ledChorus
-    io.ledPhaser    := audioPipeline.io.ledPhaser
-    io.ledTestPwm   := io.swTestPwm
-    io.ledTestTone  := io.swTestTone
+    io.ledChorus := audioPipeline.io.ledChorus
+    io.ledTremolo := audioPipeline.io.ledTremolo
+    io.ledTestPwm := io.swTestPwm
+    io.ledTestTone := io.swTestTone
 
     val bclkToggle = RegInit(false.B)
     val bclkSync = RegNext(RegNext(io.bclk))

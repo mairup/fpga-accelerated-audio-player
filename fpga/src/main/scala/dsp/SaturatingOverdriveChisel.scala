@@ -4,8 +4,8 @@ import chisel3._
 import chisel3.util._
 
 class SaturatingOverdriveChisel(
-  val gain: Double = 8.0,
-  val threshold: Double = 0.2
+  val gain: Double = 3,
+  val threshold: Double = 0.03
 ) extends Module {
   val io = IO(new AudioStreamIO(32))
 
