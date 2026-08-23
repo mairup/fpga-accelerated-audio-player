@@ -77,19 +77,10 @@ class Chorus(
     stage1Valid := false.B
   }
 
-  private def multSIntByInt(x: SInt, c: Int): SInt = {
-    if (c == 0) 0.S
-    else if (c < 0) -multSIntByInt(x, -c)
-    else {
-      val shifts = c.toBinaryString.reverse.zipWithIndex.collect { case ('1', i) => i }
-      shifts.map(i => x << i).reduce(_ + _)
-    }
-  }
-
   val sineValue = sineTableRom.io.dataA
-  val sineValue16 = (sineValue >> 16).asSInt
-  val scaledSine = multSIntByInt(sineValue16, depthSamples)
-  val modulationOffset = (scaledSine >> 15).asSInt
+  val sinePadded = sineValue.pad(42)
+  val scaledSine = (sinePadded << 9).asSInt - (sinePadded << 5).asSInt // exact sineValue * 480
+  val modulationOffset = (scaledSine >> 31).asSInt
   val calculatedDelaySamples = (centerDelaySamples.S + modulationOffset).asUInt
 
   val clampedDelay = Mux(

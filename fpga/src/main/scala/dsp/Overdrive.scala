@@ -4,8 +4,8 @@ import chisel3._
 import chisel3.util._
 
 class Overdrive(
-  val gain: Double = 3.0,
-  val threshold: Double = 0.03
+  val gain: Double = 8.0,
+  val threshold: Double = 0.2
 ) extends Module {
   val io = IO(new AudioStreamIO(32))
 

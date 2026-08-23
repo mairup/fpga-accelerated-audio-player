@@ -36,8 +36,9 @@ object FixedPointQ31 {
     if (c == 0) 0.S
     else if (c < 0) -multSIntByBigInt(x, -c)
     else {
+      val xPad = x.pad(64)
       val shifts = c.toString(2).reverse.zipWithIndex.collect { case ('1', i) => i }
-      shifts.map(i => x << i).reduce(_ + _)
+      shifts.map(i => (xPad << i).asSInt).reduce(_ + _)
     }
   }
 
