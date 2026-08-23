@@ -105,8 +105,8 @@ object VisualizerConfig {
   //
   //   - Lower GrowthFactor (e.g. 1.4 - 1.7): Jumpier / more responsive, bars bounce higher easily.
   //   - Higher GrowthFactor (e.g. 2.0 - 2.5): Steeper dynamic range, wider volume separation between quiet and loud peaks.
-  val BaseThreshold: Double = 1.9
-  val GrowthFactor:  Double = 1.7
+  val BaseThreshold: Double = 1.4
+  val GrowthFactor:  Double = 1.82
 
   // Compile-time calculation of the 8 height thresholds (for 1 to 8 LEDs)
   // With 4.0 and 1.6, this produces: Seq(4, 6, 10, 16, 26, 42, 67, 107)

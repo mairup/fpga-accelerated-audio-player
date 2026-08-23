@@ -36,7 +36,7 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_audPwmRight]
 set_property LOC E18 [get_ports io_audPwmExtra]
 set_property IOSTANDARD LVCMOS33 [get_ports io_audPwmExtra]
 
-## Onboard Switches (SW0 - SW5): out/fx master + 4 effects in processing order
+## Onboard Switches (SW0 - SW4): Master out, FX master, Overdrive, Chorus, Tremolo
 set_property LOC J15 [get_ports io_swOutMaster]
 set_property IOSTANDARD LVCMOS33 [get_ports io_swOutMaster]
 
@@ -46,14 +46,11 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_swFxMaster]
 set_property LOC M13 [get_ports io_swOverdrive]
 set_property IOSTANDARD LVCMOS33 [get_ports io_swOverdrive]
 
-set_property LOC R15 [get_ports io_swFuzz]
-set_property IOSTANDARD LVCMOS33 [get_ports io_swFuzz]
-
-set_property LOC R17 [get_ports io_swChorus]
+set_property LOC R15 [get_ports io_swChorus]
 set_property IOSTANDARD LVCMOS33 [get_ports io_swChorus]
 
-set_property LOC T18 [get_ports io_swPhaser]
-set_property IOSTANDARD LVCMOS33 [get_ports io_swPhaser]
+set_property LOC R17 [get_ports io_swTremolo]
+set_property IOSTANDARD LVCMOS33 [get_ports io_swTremolo]
 
 ## Debug switches: SW14=direct PWM bypass, SW15=test tone (sigma-delta)
 set_property LOC U11 [get_ports io_swTestPwm]
@@ -62,7 +59,7 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_swTestPwm]
 set_property LOC V10 [get_ports io_swTestTone]
 set_property IOSTANDARD LVCMOS33 [get_ports io_swTestTone]
 
-## Onboard LEDs (LED0 - LED5): mirror the switches above them
+## Onboard LEDs (LED0 - LED4): mirror the switches above them
 set_property LOC H17 [get_ports io_ledOutMaster]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ledOutMaster]
 
@@ -72,14 +69,11 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_ledFxMaster]
 set_property LOC J13 [get_ports io_ledOverdrive]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ledOverdrive]
 
-set_property LOC N14 [get_ports io_ledFuzz]
-set_property IOSTANDARD LVCMOS33 [get_ports io_ledFuzz]
-
-set_property LOC R18 [get_ports io_ledChorus]
+set_property LOC N14 [get_ports io_ledChorus]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ledChorus]
 
-set_property LOC V17 [get_ports io_ledPhaser]
-set_property IOSTANDARD LVCMOS33 [get_ports io_ledPhaser]
+set_property LOC R18 [get_ports io_ledTremolo]
+set_property IOSTANDARD LVCMOS33 [get_ports io_ledTremolo]
 
 ## Diagnostic LEDs (LED6 - LED8)
 set_property LOC U17 [get_ports io_ledBclkAct]

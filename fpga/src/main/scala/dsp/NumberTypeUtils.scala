@@ -32,8 +32,21 @@ object FixedPointQ31 {
     )
   }
 
+  private def multSIntByBigInt(x: SInt, c: BigInt): SInt = {
+    if (c == 0) 0.S
+    else if (c < 0) -multSIntByBigInt(x, -c)
+    else {
+      val shifts = c.toString(2).reverse.zipWithIndex.collect { case ('1', i) => i }
+      shifts.map(i => x << i).reduce(_ + _)
+    }
+  }
+
   def multQ31(a: SInt, b: SInt): SInt = {
-    val wide = a * b
+    val wide = (a.litOption, b.litOption) match {
+      case (Some(ca), _) => multSIntByBigInt(b, ca)
+      case (_, Some(cb)) => multSIntByBigInt(a, cb)
+      case _ => a * b
+    }
     val rounding = (1.S << 30)
     val rounded = wide + Mux(wide >= 0.S, rounding, -rounding)
     val shifted = rounded >> 31

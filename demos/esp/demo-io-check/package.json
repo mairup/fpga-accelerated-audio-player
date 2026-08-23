@@ -1,9 +1,0 @@
-{
-  "name": "gpio-demo",
-  "version": "1.0.0",
-  "port": {
-    "serial1": "/dev/ttyUSB1",
-    "baud": 115200,
-    "read": "10000"
-  }
-}

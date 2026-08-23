@@ -6,9 +6,8 @@ import chisel3.util._
 class AudioPipelineIO extends Bundle {
   val swFxMaster  = Input(Bool())
   val swOverdrive = Input(Bool())
-  val swFuzz      = Input(Bool())
   val swChorus    = Input(Bool())
-  val swPhaser    = Input(Bool())
+  val swTremolo   = Input(Bool())
 
   val sampleIn    = Input(SInt(32.W))
   val sampleValid = Input(Bool())
@@ -17,37 +16,42 @@ class AudioPipelineIO extends Bundle {
 
   val ledFxMaster  = Output(Bool())
   val ledOverdrive = Output(Bool())
-  val ledFuzz      = Output(Bool())
   val ledChorus    = Output(Bool())
-  val ledPhaser    = Output(Bool())
+  val ledTremolo   = Output(Bool())
 }
 
 class AudioPipeline extends Module {
   val io = IO(new AudioPipelineIO)
 
-  val fxMasterEnable = io.swFxMaster
+  val fxMasterEnable  = io.swFxMaster
   val enableOverdrive = fxMasterEnable && io.swOverdrive
-  val enableFuzz      = fxMasterEnable && io.swFuzz
   val enableChorus    = fxMasterEnable && io.swChorus
-  val enablePhaser    = fxMasterEnable && io.swPhaser
+  val enableTremolo   = fxMasterEnable && io.swTremolo
 
-  // val overdrive = Module(new OverdriveChisel)
-  // val fuzz      = Module(new FuzzChisel)
-  // val chorus    = Module(new ChorusChisel)
-  // val phaser    = Module(new PhaserChisel)
+  val overdrive = Module(new Overdrive)
+  val chorus    = Module(new Chorus)
+  val tremolo   = Module(new Tremolo)
 
-  // overdrive.io.sampleIn    := io.sampleIn
-  // overdrive.io.sampleValid := io.sampleValid
-  // val stage1Sample = Mux(enableOverdrive, overdrive.io.sampleOut, io.sampleIn)
-  // val stage1Valid  = Mux(enableOverdrive, overdrive.io.outValid, io.sampleValid)
+  overdrive.io.sampleIn    := io.sampleIn
+  overdrive.io.sampleValid := io.sampleValid
+  val stage1Sample = Mux(enableOverdrive, overdrive.io.sampleOut, io.sampleIn)
+  val stage1Valid  = Mux(enableOverdrive, overdrive.io.outValid, io.sampleValid)
 
-  // All effects bypassed — direct passthrough for faster synthesis
-  io.sampleOut := io.sampleIn
-  io.outValid  := io.sampleValid
+  chorus.io.sampleIn    := stage1Sample
+  chorus.io.sampleValid := stage1Valid
+  val stage2Sample = Mux(enableChorus, chorus.io.sampleOut, stage1Sample)
+  val stage2Valid  = Mux(enableChorus, chorus.io.outValid, stage1Valid)
+
+  tremolo.io.sampleIn    := stage2Sample
+  tremolo.io.sampleValid := stage2Valid
+  val stage3Sample = Mux(enableTremolo, tremolo.io.sampleOut, stage2Sample)
+  val stage3Valid  = Mux(enableTremolo, tremolo.io.outValid, stage2Valid)
+
+  io.sampleOut := stage3Sample
+  io.outValid  := stage3Valid
 
   io.ledFxMaster  := fxMasterEnable
   io.ledOverdrive := enableOverdrive
-  io.ledFuzz      := enableFuzz
   io.ledChorus    := enableChorus
-  io.ledPhaser    := enablePhaser
+  io.ledTremolo   := enableTremolo
 }
