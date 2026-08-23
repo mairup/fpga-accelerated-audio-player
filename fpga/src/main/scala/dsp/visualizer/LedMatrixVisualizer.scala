@@ -39,9 +39,9 @@ class LedMatrixVisualizerIO extends Bundle {
  *  @param orientation Fixed compile-time orientation (1 = upright, 2 = 90 deg CW, 3 = 180 deg, 4 = 270 deg CW)
  */
 class LedMatrixVisualizer(
-  val clockFreqHz:    Int = 100_000_000,
-  val frameRefreshHz: Int = 1000,
-  val orientation:    Int = 1
+  val clockFreqHz:    Int = VisualizerConfig.ClockFreqHz,
+  val frameRefreshHz: Int = VisualizerConfig.FrameRefreshHz,
+  val orientation:    Int = VisualizerConfig.Orientation
 ) extends Module {
   val io = IO(new LedMatrixVisualizerIO)
 
@@ -63,31 +63,8 @@ class LedMatrixVisualizer(
     activeRow := activeRow + 1.U
   }
 
-  // 2. Map 8 FFT Frequency Bands to Bar Heights (0 to 8 LEDs high)
-  // Per-band normalization shift compensating for natural 1/f audio spectral distribution
-  def quantizeBand(magnitude: UInt, bandIdx: Int): UInt = {
-    val shift = bandIdx match {
-      case 0 => 0
-      case 1 => 0
-      case 2 => 1
-      case 3 => 2
-      case 4 => 3
-      case 5 => 4
-      case 6 => 5
-      case _ => 6
-    }
-    val norm = magnitude >> shift.U
-    Mux(norm >= 512.U, 8.U,
-    Mux(norm >= 256.U, 7.U,
-    Mux(norm >= 128.U, 6.U,
-    Mux(norm >= 64.U,  5.U,
-    Mux(norm >= 32.U,  4.U,
-    Mux(norm >= 16.U,  3.U,
-    Mux(norm >= 8.U,   2.U,
-    Mux(norm >= 4.U,   1.U, 0.U))))))))
-  }
-
-  val bandLevels = VecInit((0 until 8).map(i => quantizeBand(io.bandMagnitudes(i), i)))
+  // 2. Map 8 FFT Frequency Bands to Bar Heights (0 to 8 LEDs high) using VisualizerConfig
+  val bandLevels = VecInit((0 until 8).map(i => VisualizerConfig.quantizeToLevel(io.bandMagnitudes(i), i)))
 
   // 3. Compute Column Anode values for the currently active row
   val colAnodes = Wire(Vec(8, Bool()))

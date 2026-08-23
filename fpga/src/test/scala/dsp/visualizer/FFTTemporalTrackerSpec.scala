@@ -51,7 +51,7 @@ class FFTTemporalTrackerSpec extends AnyFlatSpec with Matchers with ChiselScalat
     }
   }
 
-  it should "exponentially decay by 25% on subsequent lower frames" in {
+  it should "exponentially decay on subsequent lower frames" in {
     test(new FFTTemporalTracker(testBins, testWidth)) { dut =>
       dut.io.valid.poke(false.B)
       for (i <- 0 until testBins) dut.io.binMagnitudes(i).poke(0.U)
@@ -61,13 +61,13 @@ class FFTTemporalTrackerSpec extends AnyFlatSpec with Matchers with ChiselScalat
       feedFrame(dut, Seq(1000, 1000, 1000, 1000))
       dut.io.catVolume(0).expect(1000.U)
 
-      // Next frame with 0 input: decay by 25% (1000 - 250 = 750)
+      // Next frame with 0 input: decay by 50% (1000 - 500 = 500)
       feedFrame(dut, Seq(0, 0, 0, 0))
-      dut.io.catVolume(0).expect(750.U)
+      dut.io.catVolume(0).expect(500.U)
 
-      // Next frame: 750 - (750 >> 2) = 750 - 187 = 563
+      // Next frame: 500 - (500 >> 1) = 250
       feedFrame(dut, Seq(0, 0, 0, 0))
-      dut.io.catVolume(0).expect(563.U)
+      dut.io.catVolume(0).expect(250.U)
     }
   }
 }

@@ -27,8 +27,8 @@ class FFTTemporalTracker(
 
   when(io.valid) {
     for (i <- 0 until numBins) {
-      // Smooth exponential decay: decay by 1/4th (25%) each frame
-      val decayed = outputRegs(i) - (outputRegs(i) >> 2)
+      // Smooth exponential decay: decay by  each frame
+      val decayed = outputRegs(i) - (outputRegs(i) >> 1)
       // Fast attack: jump to new peak immediately
       outputRegs(i) := Mux(io.binMagnitudes(i) > decayed, io.binMagnitudes(i), decayed)
     }

@@ -65,27 +65,6 @@ class TopAudioAccelerator extends RawModule {
   val clock = IO(Input(Clock()))
   val io = IO(new TopAudioAcceleratorIO)
 
-  def quantizeBandToAscii(magnitude: UInt, bandIdx: Int): UInt = {
-    val shift = bandIdx match {
-      case 0 => 0
-      case 1 => 0
-      case 2 => 1
-      case 3 => 2
-      case 4 => 3
-      case 5 => 4
-      case 6 => 5
-      case _ => 6
-    }
-    val norm = magnitude >> shift.U
-    val level = Mux(norm >= 256.U, 7.U,
-                Mux(norm >= 128.U, 6.U,
-                Mux(norm >= 64.U,  5.U,
-                Mux(norm >= 32.U,  4.U,
-                Mux(norm >= 16.U,  3.U,
-                Mux(norm >= 8.U,   2.U,
-                Mux(norm >= 4.U,   1.U, 0.U)))))))
-    level + '1'.U(8.W)
-  }
   def toHexAscii(nibble: UInt): UInt = Mux(nibble < 10.U, nibble + '0'.U(8.W), nibble - 10.U + 'A'.U(8.W))
 
   withClockAndReset(clock, !io.cpuResetN) {
@@ -135,7 +114,7 @@ class TopAudioAccelerator extends RawModule {
       timer10Hz := timer10Hz + 1.U
     }
 
-    val bandAscii = VecInit((0 until 8).map(i => quantizeBandToAscii(latchedBands(i), i)))
+    val bandAscii = VecInit((0 until 8).map(i => dsp.visualizer.VisualizerConfig.quantizeToAscii(latchedBands(i), i)))
     val volHexHigh = toHexAscii(Cat(0.U(3.W), latchedVol(4)))
     val volHexLow  = toHexAscii(latchedVol(3, 0))
 

@@ -98,9 +98,79 @@ class FFTMagnitudeBinnerSpec extends AnyFlatSpec with Matchers with ChiselScalat
       dut.io.binValid.expect(true.B)
 
       val bin0 = dut.io.binMagnitudes(0).peek().litValue.toInt
-      // Alpha Max Plus Beta Min for (-300, -400): max(300, 400) + (300>>2) + (300>>3) = 400 + 75 + 37 = 512
-      withClue(s"bin[0] should be 512: ") {
-        bin0 shouldBe 512
+      // Alpha Max Plus Beta Min for (-300, -400): 400 + 75 + 37 = 512
+      // In peak-weighted mode: mean = 512 / BandBinCounts(0), peak = 512
+      //   blended = mean + (peak - mean) * PeakBlendMult / 256
+      val mean        = (512 * VisualizerConfig.BandDivMultipliers(0)) >> 16
+      val diff        = 512 - mean
+      val expectedBin0 = if (VisualizerConfig.PeakBlendMult >= 256) 512
+                         else if (VisualizerConfig.PeakBlendMult <= 0) mean
+                         else mean + ((diff * VisualizerConfig.PeakBlendMult) >> 8)
+      withClue(s"bin[0] should be $expectedBin0 (blended): ") {
+        bin0 shouldBe expectedBin0
+      }
+    }
+  }
+
+  it should "not boost a flat noise floor (peak = mean -> diff = 0)" in {
+    test(new FFTMagnitudeBinner(testFftSize, testBins, bitReversed = false)) { dut =>
+      dut.clock.setTimeout(0)
+      dut.io.valid.poke(false.B)
+      dut.io.frameDone.poke(false.B)
+
+      // Feed all bins with the same constant magnitude: peak == mean in each band
+      val flatMag = 200
+      for (i <- 0 until testFftSize) feedBin(dut, flatMag, 0, isLast = (i == testFftSize - 1))
+
+      dut.io.valid.poke(false.B)
+      dut.io.frameDone.poke(false.B)
+      dut.io.binValid.expect(true.B)
+
+      for (band <- 0 until testBins) {
+        val result = dut.io.binMagnitudes(band).peek().litValue.toInt
+        val n      = VisualizerConfig.BandBinCounts(band)
+        val mult   = VisualizerConfig.BandDivMultipliers(band)
+        // Sum = flatMag * n bins; average = (flatMag * n * mult) >> 16 ≈ flatMag (rounding)
+        val mean   = ((flatMag.toLong * n * mult) >> 16).toInt
+        // When all bins equal flatMag: peak == mean → diff == 0 → blended == mean (no boost)
+        withClue(s"band[$band]: flat noise floor should not be boosted (got $result, mean $mean): ") {
+          result shouldBe mean
+        }
+      }
+    }
+  }
+
+  it should "boost an isolated transient (peak >> mean)" in {
+    test(new FFTMagnitudeBinner(testFftSize, testBins, bitReversed = false)) { dut =>
+      dut.clock.setTimeout(0)
+      dut.io.valid.poke(false.B)
+      dut.io.frameDone.poke(false.B)
+
+      // Feed one loud bin at index 0 (band 0), rest silent
+      val peakMag = 2000
+      feedBin(dut, peakMag, 0)
+      for (i <- 1 until testFftSize) feedBin(dut, 0, 0, isLast = (i == testFftSize - 1))
+
+      dut.io.valid.poke(false.B)
+      dut.io.frameDone.poke(false.B)
+      dut.io.binValid.expect(true.B)
+
+      val bin0   = dut.io.binMagnitudes(0).peek().litValue.toInt
+      val mult   = VisualizerConfig.BandDivMultipliers(0)
+      val mean   = (peakMag * mult) >> 16
+      val diff   = peakMag - mean
+      val blended = if (VisualizerConfig.PeakBlendMult >= 256) peakMag
+                    else if (VisualizerConfig.PeakBlendMult <= 0) mean
+                    else mean + ((diff * VisualizerConfig.PeakBlendMult) >> 8)
+
+      withClue(s"band[0] transient: got $bin0, expected $blended (mean=$mean, peak=$peakMag): ") {
+        bin0 shouldBe blended
+      }
+      withClue(s"band[0] blended should be > mean ($mean): ") {
+        bin0 should be > mean
+      }
+      withClue(s"band[0] blended should be <= peak ($peakMag): ") {
+        bin0 should be <= peakMag
       }
     }
   }
