@@ -1,6 +1,7 @@
 import net
 import monitor show Channel
 import i2s
+import uart
 
 AUDIO-PORT ::= 4440
 
@@ -19,6 +20,7 @@ RX-QUEUE ::= Channel MAX-QUEUE-FRAMES
 class AudioStreamer:
   network/net.Interface
   i2s-bus/i2s.Bus? := null
+  usb-active-until/int := 0
 
   constructor --.network:
 
@@ -46,13 +48,35 @@ class AudioStreamer:
 
     init-i2s
     task:: i2s-write-loop
+    task:: uart-read-loop
 
     while true:
       catch:
         gram := socket.receive
         if gram.data.size == UDP-FRAME-BYTES:
+          // Ignore UDP packets if USB is actively streaming
+          if Time.monotonic_us < usb-active-until: continue
+
           if RX-QUEUE.size < MAX-QUEUE-FRAMES:
             RX-QUEUE.send gram.data
+
+  uart-read-loop -> none:
+    // We catch exceptions here because claiming Pins 1/3 (UART0)
+    // might disrupt Jaguar's monitor.
+    catch:
+      port := uart.Port --rx=3 --tx=1 --baud_rate=2000000
+      reader := port.in
+      buf := ByteArray UDP-FRAME-BYTES
+      idx := 0
+      while true:
+        chunk := reader.read
+        for i := 0; i < chunk.size; i++:
+          buf[idx++] = chunk[i]
+          if idx == UDP-FRAME-BYTES:
+            if RX-QUEUE.size < MAX-QUEUE-FRAMES:
+              RX-QUEUE.send buf.copy
+            usb-active-until = Time.monotonic_us + 1_000_000
+            idx = 0
 
   i2s-write-loop -> none:
     silence-buf := ByteArray I2S-FRAME-BYTES

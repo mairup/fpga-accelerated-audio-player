@@ -4,6 +4,7 @@ import argparse
 import math
 import os
 import socket
+import serial
 import struct
 import subprocess
 import sys
@@ -24,6 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--burst", action="store_true", help="Generate 2 Hz ON/OFF burst test pattern mode")
     parser.add_argument("--static-test", action="store_true", help="Tell ESP32 to send a static bit-pattern over I2S")
     parser.add_argument("--restore", action="store_true", help="Restore physical system audio output")
+    parser.add_argument("--usb", type=str, help="Send audio over serial port instead of UDP (e.g. /dev/ttyUSB0)")
+    parser.add_argument("--baud", type=int, default=2000000, help="Baud rate for serial connection")
     return parser.parse_args()
 
 def compute_bytes_rms(raw_bytes: bytes) -> float:
@@ -99,12 +102,15 @@ def cleanup_all_virtual_sinks():
         pass
 
 class AudioStreamerClient:
-    def __init__(self, target_host: str, target_port: int, synth: bool = False, burst: bool = False, static_test: bool = False) -> None:
+    def __init__(self, target_host: str, target_port: int, synth: bool = False, burst: bool = False, static_test: bool = False, usb_port: str = None, baud: int = 2000000) -> None:
         self.target_host = target_host
         self.target_port = target_port
         self.synth = synth
         self.burst = burst
         self.static_test = static_test
+        self.usb_port = usb_port
+        self.baud = baud
+        self.serial = serial.Serial(self.usb_port, self.baud) if self.usb_port else None
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.running = False
         self.seq = 0
@@ -115,7 +121,10 @@ class AudioStreamerClient:
 
     def start(self) -> None:
         self.running = True
-        print(f"Audio Streamer -> Target ESP32: {self.target_host}:{self.target_port}")
+        if self.serial:
+            print(f"Audio Streamer -> Target USB: {self.usb_port} @ {self.baud} baud")
+        else:
+            print(f"Audio Streamer -> Target ESP32: {self.target_host}:{self.target_port}")
         if self.static_test:
             self.static_test_loop()
         elif self.burst:
@@ -135,6 +144,8 @@ class AudioStreamerClient:
         if self.physical_sink:
             restore_default_sink(self.physical_sink)
         cleanup_all_virtual_sinks()
+        if self.serial:
+            self.serial.close()
 
     def static_test_loop(self) -> None:
         print("Sending 0x8765 and 0x1234 test pattern to ESP32...")
@@ -144,7 +155,10 @@ class AudioStreamerClient:
         
         while self.running:
             try:
-                self.sock.sendto(payload, (self.target_host, self.target_port))
+                if self.serial:
+                    self.serial.write(payload)
+                else:
+                    self.sock.sendto(payload, (self.target_host, self.target_port))
                 self.tx_count += 1
                 self.seq = (self.seq + 1) & 0xFFFFFFFF
             except OSError:
@@ -172,7 +186,10 @@ class AudioStreamerClient:
             self.cap_rms_db = compute_bytes_rms(raw_in)
             self.seq = (self.seq + 1) & 0xFFFFFFFF
             try:
-                self.sock.sendto(raw_in, (self.target_host, self.target_port))
+                if self.serial:
+                    self.serial.write(raw_in)
+                else:
+                    self.sock.sendto(raw_in, (self.target_host, self.target_port))
                 self.tx_count += 1
             except OSError:
                 pass
@@ -201,7 +218,10 @@ class AudioStreamerClient:
             self.cap_rms_db = compute_bytes_rms(raw_in)
             self.seq = (self.seq + 1) & 0xFFFFFFFF
             try:
-                self.sock.sendto(raw_in, (self.target_host, self.target_port))
+                if self.serial:
+                    self.serial.write(raw_in)
+                else:
+                    self.sock.sendto(raw_in, (self.target_host, self.target_port))
                 self.tx_count += 1
             except OSError:
                 pass
@@ -250,7 +270,10 @@ class AudioStreamerClient:
 
                     self.cap_rms_db = compute_bytes_rms(raw_in)
                     self.seq = (self.seq + 1) & 0xFFFFFFFF
-                    self.sock.sendto(raw_in, (self.target_host, self.target_port))
+                    if self.serial:
+                        self.serial.write(raw_in)
+                    else:
+                        self.sock.sendto(raw_in, (self.target_host, self.target_port))
                     self.tx_count += 1
                     
                     now_meter = time.time()
@@ -271,7 +294,7 @@ def main() -> None:
         cleanup_all_virtual_sinks()
         sys.exit(0)
 
-    client = AudioStreamerClient(args.target, args.port, synth=args.synth, burst=args.burst, static_test=args.static_test)
+    client = AudioStreamerClient(args.target, args.port, synth=args.synth, burst=args.burst, static_test=args.static_test, usb_port=args.usb, baud=args.baud)
     try:
         client.start()
     except KeyboardInterrupt:

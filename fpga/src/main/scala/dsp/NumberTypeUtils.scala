@@ -32,7 +32,7 @@ object FixedPointQ31 {
     )
   }
 
-  private def multSIntByBigInt(x: SInt, c: BigInt): SInt = {
+  def multSIntByBigInt(x: SInt, c: BigInt): SInt = {
     if (c == 0) 0.S
     else if (c < 0) -multSIntByBigInt(x, -c)
     else {

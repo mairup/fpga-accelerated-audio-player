@@ -10,6 +10,11 @@ ifeq (fpga,$(firstword $(MAKECMDGOALS)))
   $(eval $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)):;@:)
 endif
 
+ifeq (client,$(firstword $(MAKECMDGOALS)))
+  CLIENT_CMD := $(word 2,$(MAKECMDGOALS))
+  $(eval $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)):;@:)
+endif
+
 .PHONY: all help fpga esp client clean
 
 all:
@@ -25,6 +30,7 @@ help:
 	@echo "make fpga flash  - Flash FPGA bitstream to $(BOARD) only"
 	@echo "make esp         - Deploy & run audio streamer on ESP32 ($(ESP_DEVICE))"
 	@echo "make client      - Launch audio streaming client ($(ESP_IP))"
+	@echo "make client usb  - Launch audio streaming client via USB (/dev/ttyUSB0)"
 	@echo "make clean       - Clean build artifacts"
 
 fpga:
@@ -49,8 +55,16 @@ esp:
 	$(JAG) run -d $(ESP_DEVICE) esp/audio_streamer.toit
 
 client:
+ifeq ($(CLIENT_CMD),usb)
+	@echo "Starting audio client pointing to USB (/dev/ttyUSB0)..."
+	$(PYTHON) client/audio_client.py --usb /dev/ttyUSB0
+else ifeq ($(CLIENT_CMD),)
 	@echo "Starting audio client pointing to $(ESP_IP)..."
 	$(PYTHON) client/audio_client.py --target $(ESP_IP)
+else
+	@echo "Unknown client command '$(CLIENT_CMD)'. Use 'make client' or 'make client usb'."
+	@exit 1
+endif
 
 clean:
 	$(MAKE) -C fpga clean

@@ -12,16 +12,7 @@ class Overdrive(
   private val gainQ16 = BigInt(Math.round(gain * 65536.0))
   private val thresholdQ31 = FixedPointQ31.doubleToQ31BigInt(threshold).S(32.W)
 
-  private def multSIntByBigInt(x: SInt, c: BigInt): SInt = {
-    if (c == 0) 0.S
-    else if (c < 0) -multSIntByBigInt(x, -c)
-    else {
-      val shifts = c.toString(2).reverse.zipWithIndex.collect { case ('1', i) => i }
-      shifts.map(i => x << i).reduce(_ + _)
-    }
-  }
-
-  val sampleInWide = multSIntByBigInt(io.sampleIn, gainQ16) >> 16
+  val sampleInWide = FixedPointQ31.multSIntByBigInt(io.sampleIn, gainQ16) >> 16
   val gainedSignal = FixedPointQ31.saturateSInt(sampleInWide.asSInt, 32)
 
   val isPositive = gainedSignal >= 0.S
