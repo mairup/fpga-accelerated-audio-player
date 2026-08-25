@@ -16,6 +16,7 @@ SAMPLE_RATE = 48000
 CHANNELS = 1
 FRAME_SAMPLES = 480  # 10 ms per packet (480 / 48000 = 0.010 s)
 FRAME_BYTES = FRAME_SAMPLES * CHANNELS * 2  # 960 bytes audio payload (Mono 16-bit PCM)
+SYNC_WORD = b'\x5a\xa5\x5a\xa5'
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Audio Streamer Client")
@@ -156,7 +157,7 @@ class AudioStreamerClient:
         while self.running:
             try:
                 if self.serial:
-                    self.serial.write(payload)
+                    self.serial.write(SYNC_WORD + payload)
                 else:
                     self.sock.sendto(payload, (self.target_host, self.target_port))
                 self.tx_count += 1
@@ -187,7 +188,7 @@ class AudioStreamerClient:
             self.seq = (self.seq + 1) & 0xFFFFFFFF
             try:
                 if self.serial:
-                    self.serial.write(raw_in)
+                    self.serial.write(SYNC_WORD + raw_in)
                 else:
                     self.sock.sendto(raw_in, (self.target_host, self.target_port))
                 self.tx_count += 1
@@ -219,7 +220,7 @@ class AudioStreamerClient:
             self.seq = (self.seq + 1) & 0xFFFFFFFF
             try:
                 if self.serial:
-                    self.serial.write(raw_in)
+                    self.serial.write(SYNC_WORD + raw_in)
                 else:
                     self.sock.sendto(raw_in, (self.target_host, self.target_port))
                 self.tx_count += 1
@@ -271,7 +272,7 @@ class AudioStreamerClient:
                     self.cap_rms_db = compute_bytes_rms(raw_in)
                     self.seq = (self.seq + 1) & 0xFFFFFFFF
                     if self.serial:
-                        self.serial.write(raw_in)
+                        self.serial.write(SYNC_WORD + raw_in)
                     else:
                         self.sock.sendto(raw_in, (self.target_host, self.target_port))
                     self.tx_count += 1

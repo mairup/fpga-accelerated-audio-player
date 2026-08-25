@@ -67,16 +67,34 @@ class AudioStreamer:
       port := uart.Port --rx=3 --tx=1 --baud_rate=2000000
       reader := port.in
       buf := ByteArray UDP-FRAME-BYTES
-      idx := 0
+      sync-state := 0
+      payload-idx := 0
       while true:
         chunk := reader.read
         for i := 0; i < chunk.size; i++:
-          buf[idx++] = chunk[i]
-          if idx == UDP-FRAME-BYTES:
-            if RX-QUEUE.size < MAX-QUEUE-FRAMES:
-              RX-QUEUE.send buf.copy
-            usb-active-until = Time.monotonic_us + 1_000_000
-            idx = 0
+          b := chunk[i]
+          if sync-state == 0:
+            if b == 0x5a: sync-state = 1
+          else if sync-state == 1:
+            if b == 0xa5: sync-state = 2
+            else if b == 0x5a: sync-state = 1
+            else: sync-state = 0
+          else if sync-state == 2:
+            if b == 0x5a: sync-state = 3
+            else: sync-state = 0
+          else if sync-state == 3:
+            if b == 0xa5:
+              sync-state = 4
+              payload-idx = 0
+            else if b == 0x5a: sync-state = 1
+            else: sync-state = 0
+          else if sync-state == 4:
+            buf[payload-idx++] = b
+            if payload-idx == UDP-FRAME-BYTES:
+              if RX-QUEUE.size < MAX-QUEUE-FRAMES:
+                RX-QUEUE.send buf.copy
+              usb-active-until = Time.monotonic_us + 1_000_000
+              sync-state = 0
 
   i2s-write-loop -> none:
     silence-buf := ByteArray I2S-FRAME-BYTES
