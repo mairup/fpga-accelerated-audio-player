@@ -5,9 +5,9 @@ import uart
 
 AUDIO-PORT ::= 4440
 
-BCLK-PIN  ::= 32
-WS-PIN    ::= 33
-SDOUT-PIN ::= 12
+I2S-CLK-PIN  ::= 32
+I2S-WS-PIN   ::= 33
+I2S-OUT-PIN  ::= 12
 
 UDP-FRAME-BYTES ::= 960
 I2S-FRAME-BYTES ::= 960
@@ -28,9 +28,9 @@ class AudioStreamer:
     catch:
       i2s-bus = i2s.Bus
         --master=true
-        --sck=BCLK-PIN
-        --ws=WS-PIN
-        --tx=SDOUT-PIN
+        --sck=I2S-CLK-PIN
+        --ws=I2S-WS-PIN
+        --tx=I2S-OUT-PIN
       i2s-bus.configure
         --sample-rate=48000
         --bits-per-sample=16
@@ -38,9 +38,9 @@ class AudioStreamer:
         --slots-in=i2s.Bus.SLOTS-MONO-LEFT
       i2s-bus.start
 
-  write-frame buf/ByteArray -> bool:
+  write-frame buffer/ByteArray -> bool:
     if i2s-bus == null: return false
-    err := catch: i2s-bus.write buf
+    err := catch: i2s-bus.write buffer
     return err == null
 
   run -> none:
@@ -52,13 +52,13 @@ class AudioStreamer:
 
     while true:
       catch:
-        gram := socket.receive
-        if gram.data.size == UDP-FRAME-BYTES:
+        datagram := socket.receive
+        if datagram.data.size == UDP-FRAME-BYTES:
           // Ignore UDP packets if USB is actively streaming
           if Time.monotonic_us < usb-active-until: continue
 
           if RX-QUEUE.size < MAX-QUEUE-FRAMES:
-            RX-QUEUE.send gram.data
+            RX-QUEUE.send datagram.data
 
   uart-read-loop -> none:
     // We catch exceptions here because claiming Pins 1/3 (UART0)
@@ -66,35 +66,13 @@ class AudioStreamer:
     catch:
       port := uart.Port --rx=3 --tx=1 --baud_rate=2000000
       reader := port.in
-      buf := ByteArray UDP-FRAME-BYTES
-      sync-state := 0
-      payload-idx := 0
+      synchronizer := PacketSynchronizer
+      
       while true:
-        chunk := reader.read
-        for i := 0; i < chunk.size; i++:
-          b := chunk[i]
-          if sync-state == 0:
-            if b == 0x5a: sync-state = 1
-          else if sync-state == 1:
-            if b == 0xa5: sync-state = 2
-            else if b == 0x5a: sync-state = 1
-            else: sync-state = 0
-          else if sync-state == 2:
-            if b == 0x5a: sync-state = 3
-            else: sync-state = 0
-          else if sync-state == 3:
-            if b == 0xa5:
-              sync-state = 4
-              payload-idx = 0
-            else if b == 0x5a: sync-state = 1
-            else: sync-state = 0
-          else if sync-state == 4:
-            buf[payload-idx++] = b
-            if payload-idx == UDP-FRAME-BYTES:
-              if RX-QUEUE.size < MAX-QUEUE-FRAMES:
-                RX-QUEUE.send buf.copy
-              usb-active-until = Time.monotonic_us + 1_000_000
-              sync-state = 0
+        frame := synchronizer.read-frame reader
+        if RX-QUEUE.size < MAX-QUEUE-FRAMES:
+          RX-QUEUE.send frame
+        usb-active-until = Time.monotonic_us + 1_000_000
 
   i2s-write-loop -> none:
     silence-buf := ByteArray I2S-FRAME-BYTES
@@ -120,3 +98,16 @@ main:
   network := net.open
   streamer := AudioStreamer --network=network
   streamer.run
+
+class PacketSynchronizer:
+  read-frame reader -> ByteArray:
+    align-to-next-frame reader
+    return reader.read-bytes UDP-FRAME-BYTES
+
+  align-to-next-frame reader -> none:
+    while true:
+      reader.skip-up-to 0x5a
+      peek := reader.peek-bytes 3
+      if peek[0] == 0xa5 and peek[1] == 0x5a and peek[2] == 0xa5:
+        reader.skip 3
+        return

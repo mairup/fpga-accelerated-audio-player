@@ -9,7 +9,7 @@ class DualPortBramRom(val entries: Int, val dataWidth: Int, val initData: Seq[Bi
   val addrWidth = log2Ceil(entries)
 
   val io = IO(new Bundle {
-    val clock = Input(Clock())
+    val clk = Input(Clock())
     val addrA = Input(UInt(addrWidth.W))
     val addrB = Input(UInt(addrWidth.W))
     val dataA = Output(SInt(dataWidth.W))
@@ -27,7 +27,7 @@ class DualPortBramRom(val entries: Int, val dataWidth: Int, val initData: Seq[Bi
   setInline(
     s"$modName.v",
     s"""module $modName (
-       |  input  wire clock,
+       |  input  wire clk,
        |  input  wire [${addrWidth - 1}:0] addrA,
        |  input  wire [${addrWidth - 1}:0] addrB,
        |  output reg  [${dataWidth - 1}:0] dataA,
@@ -39,7 +39,7 @@ class DualPortBramRom(val entries: Int, val dataWidth: Int, val initData: Seq[Bi
        |$hexLines
        |  end
        |
-       |  always @(posedge clock) begin
+       |  always @(posedge clk) begin
        |    dataA <= mem[addrA];
        |    dataB <= mem[addrB];
        |  end
@@ -54,7 +54,7 @@ class DualPortBramRam(val entries: Int, val dataWidth: Int)
   val addrWidth = log2Ceil(entries)
 
   val io = IO(new Bundle {
-    val clock = Input(Clock())
+    val clk   = Input(Clock())
     val weA   = Input(Bool())
     val addrA = Input(UInt(addrWidth.W))
     val dinA  = Input(SInt(dataWidth.W))
@@ -68,7 +68,7 @@ class DualPortBramRam(val entries: Int, val dataWidth: Int)
   setInline(
     s"$modName.v",
     s"""module $modName (
-       |  input  wire clock,
+       |  input  wire clk,
        |  input  wire weA,
        |  input  wire [${addrWidth - 1}:0] addrA,
        |  input  wire [${dataWidth - 1}:0] dinA,
@@ -77,7 +77,7 @@ class DualPortBramRam(val entries: Int, val dataWidth: Int)
        |);
        |  (* ram_style = "block" *) reg [${dataWidth - 1}:0] mem [0:${entries - 1}];
        |
-       |  always @(posedge clock) begin
+       |  always @(posedge clk) begin
        |    if (weA)
        |      mem[addrA] <= dinA;
        |    doutB <= mem[addrB];

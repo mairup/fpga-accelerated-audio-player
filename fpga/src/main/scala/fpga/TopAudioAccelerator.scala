@@ -5,7 +5,7 @@ import chisel3.util._
 import dsp.AudioPipeline
 
 class TopAudioAcceleratorIO extends Bundle {
-  val bclk = Input(Bool())
+  val clk = Input(Bool())
   val ws = Input(Bool())
   val sdOut = Input(Bool())
   val audPwm = Output(Bool())
@@ -31,7 +31,7 @@ class TopAudioAcceleratorIO extends Bundle {
   val ledChorus    = Output(Bool())
   val ledTremolo   = Output(Bool())
 
-  val ledBclkAct = Output(Bool())
+  val ledClkAct = Output(Bool())
   val ledWsAct   = Output(Bool())
   val ledRxValid = Output(Bool())
   val ledVolume  = Output(UInt(5.W))
@@ -60,19 +60,19 @@ class TopAudioAcceleratorIO extends Bundle {
 }
 
 class TopAudioAccelerator extends RawModule {
-  val clock = IO(Input(Clock()))
+  val clk = IO(Input(Clock()))
   val io = IO(new TopAudioAcceleratorIO)
 
   def toHexAscii(nibble: UInt): UInt = Mux(nibble < 10.U, nibble + '0'.U(8.W), nibble - 10.U + 'A'.U(8.W))
 
-  withClockAndReset(clock, !io.cpuResetN) {
+  withClockAndReset(clk, !io.cpuResetN) {
     val i2sController = Module(new I2sController)
     val audioPipeline = Module(new AudioPipeline)
     val dac = Module(new SigmaDeltaDAC)
     val uartTransmitter = Module(new UartTransmitter(100_000_000, 115200))
     io.txSerialPin := uartTransmitter.io.serialTxPin
 
-    i2sController.io.bclk := io.bclk
+    i2sController.io.clk := io.clk
     i2sController.io.ws := io.ws
     i2sController.io.sdOut := io.sdOut
 
@@ -188,18 +188,16 @@ class TopAudioAccelerator extends RawModule {
     io.ledTestPwm   := io.swTestPwm
     io.ledTestTone  := io.swTestTone
 
-    val bclkToggle = RegInit(false.B)
-    val bclkSync = RegNext(RegNext(io.bclk))
-    val bclkPrev = RegNext(bclkSync)
-    when(bclkSync && !bclkPrev) {
-      bclkToggle := !bclkToggle
+    val clkSync = ShiftRegister(io.clk, 2)
+    val clkToggle = RegInit(false.B)
+    when(clkSync && !RegNext(clkSync)) {
+      clkToggle := !clkToggle
     }
-    io.ledBclkAct := bclkToggle
+    io.ledClkAct := clkToggle
 
+    val wsSync = ShiftRegister(io.ws, 2)
     val wsToggle = RegInit(false.B)
-    val wsSync = RegNext(RegNext(io.ws))
-    val wsPrev = RegNext(wsSync)
-    when(wsSync =/= wsPrev) {
+    when(wsSync =/= RegNext(wsSync)) {
       wsToggle := !wsToggle
     }
     io.ledWsAct := wsToggle
@@ -215,7 +213,7 @@ class TopAudioAccelerator extends RawModule {
     io.ledVolume := absSample(30, 26)
 
     // 8x8 LED Matrix Spectrum Visualizer on PMOD JC & JD
-    val matrixVisualizer = Module(new dsp.visualizer.LedMatrixVisualizer(100_000_000, 1000, 1))
+    val matrixVisualizer = Module(new dsp.visualizer.LedMatrixVisualizer(100_000_000, 1000, 0))
     matrixVisualizer.io.bandMagnitudes := visualizer.io.catVolume
     io.jc1  := matrixVisualizer.io.jc1
     io.jc2  := matrixVisualizer.io.jc2

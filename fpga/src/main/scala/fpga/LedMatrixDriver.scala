@@ -9,10 +9,10 @@ import chisel3.util._
  *  between logical (row, col) coordinates and Nexys A7 PMOD JC/JD headers.
  *
  *  Orientation selects the displayed rotation of the 8x8 image (each step 90 degrees clockwise):
- *    - 0 / 1 : upright        (r, c)                 -> (r,            c)
- *    - 2     : 90 degrees CW  (r, c)                 -> (c,            7-r)
- *    - 3     : 180 degrees    (r, c)                 -> (7-r,          7-c)
- *    - 4     : 270 degrees CW (r, c)                 -> (7-c,          r)
+ *    - 0 : upright        (r, c)                 -> (r,            c)
+ *    - 1 : 90 degrees CW  (r, c)                 -> (c,            7-r)
+ *    - 2 : 180 degrees    (r, c)                 -> (7-r,          7-c)
+ *    - 3 : 270 degrees CW (r, c)                 -> (7-c,          r)
  *
  *  Logical coordinates (both active-high):
  *    - rows(i) = 1 -> Row (i+1) is ACTIVE (driven HIGH to +3.3V, Anode)
@@ -68,19 +68,16 @@ class LedMatrixDriverIO extends Bundle {
 class LedMatrixDriver extends RawModule {
   val io = IO(new LedMatrixDriverIO)
 
-  // Orientation 1-4 selects the display rotation. 0 is treated as 1 (upright).
-  val orient = Mux(io.orientation === 0.U, 0.U, io.orientation - 1.U)
-
   val r = io.rows
   val c = io.cols
 
-  val rotatedRows = Mux(orient === 1.U, c,
-                    Mux(orient === 2.U, Reverse(r),
-                    Mux(orient === 3.U, Reverse(c), r)))
+  val rotatedRows = Mux(io.orientation === 1.U, c,
+                    Mux(io.orientation === 2.U, Reverse(r),
+                    Mux(io.orientation === 3.U, Reverse(c), r)))
 
-  val rotatedCols = Mux(orient === 1.U, Reverse(r),
-                    Mux(orient === 2.U, Reverse(c),
-                    Mux(orient === 3.U, r, c)))
+  val rotatedCols = Mux(io.orientation === 1.U, Reverse(r),
+                    Mux(io.orientation === 2.U, Reverse(c),
+                    Mux(io.orientation === 3.U, r, c)))
 
   // Physical routing derived from empirical diagnostic observations.
   // Rows are Anodes (Active HIGH -> 1 = +3.3V)

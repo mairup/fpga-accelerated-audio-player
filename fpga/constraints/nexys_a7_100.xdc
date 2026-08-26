@@ -1,9 +1,9 @@
 ## Nexys A7 100T XDC Pin Constraints for TopAudioAccelerator
 
 ## 100 MHz System Clock
-set_property LOC E3 [get_ports clock]
-set_property IOSTANDARD LVCMOS33 [get_ports clock]
-create_clock -period 10.0 -name sys_clk -waveform {0 5.0} [get_ports clock]
+set_property LOC E3 [get_ports clk]
+set_property IOSTANDARD LVCMOS33 [get_ports clk]
+create_clock -period 10.0 -name sys_clk -waveform {0 5.0} [get_ports clk]
 
 ## CPU RESET button (C12, active-low / CPU_RESETN). Inverted in the Scala top
 ## so an active-high reset is derived. Normally HIGH = not reset; press to reset.
@@ -14,7 +14,7 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_cpuResetN]
 ## Wiring matching physical connections:
 ## ESP32 SDOUT (GPIO12) -> JA Pin 7  (D17) -> io_sdOut (input)
 ## ESP32 WS    (GPIO33) -> JA Pin 8  (E17) -> io_ws    (input)
-## ESP32 BCLK  (GPIO32) -> JA Pin 10 (G18) -> io_bclk  (input)
+## ESP32 CLK   (GPIO32) -> JA Pin 10 (G18) -> io_clk   (input)
 ## JA Pin 9 (F18) is now FREE / UNUSED
 
 set_property LOC D17 [get_ports io_sdOut]
@@ -23,8 +23,8 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_sdOut]
 set_property LOC E17 [get_ports io_ws]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ws]
 
-set_property LOC G18 [get_ports io_bclk]
-set_property IOSTANDARD LVCMOS33 [get_ports io_bclk]
+set_property LOC G18 [get_ports io_clk]
+set_property IOSTANDARD LVCMOS33 [get_ports io_clk]
 
 ## DIY Stereo Audio Outputs on PMOD JA (Top Row)
 set_property LOC C17 [get_ports io_audPwmLeft]
@@ -76,8 +76,8 @@ set_property LOC R18 [get_ports io_ledTremolo]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ledTremolo]
 
 ## Diagnostic LEDs (LED6 - LED8)
-set_property LOC U17 [get_ports io_ledBclkAct]
-set_property IOSTANDARD LVCMOS33 [get_ports io_ledBclkAct]
+set_property LOC U17 [get_ports io_ledClkAct]
+set_property IOSTANDARD LVCMOS33 [get_ports io_ledClkAct]
 
 set_property LOC U16 [get_ports io_ledWsAct]
 set_property IOSTANDARD LVCMOS33 [get_ports io_ledWsAct]

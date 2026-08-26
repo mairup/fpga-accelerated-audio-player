@@ -10,6 +10,8 @@ project/project/
 test_run_dir/
 **/test_run_dir/
 *.class
+metals.sbt
+**/metals.sbt
 
 # FPGA Build Outputs & Bitstreams
 *.bit
@@ -56,3 +58,4 @@ Thumbs.db
 *~
 .kilo/
 .kilo
+docs

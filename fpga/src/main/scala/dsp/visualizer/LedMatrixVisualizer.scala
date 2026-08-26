@@ -36,7 +36,7 @@ class LedMatrixVisualizerIO extends Bundle {
  *
  *  @param clockFreqHz Clock frequency in Hz (default 100 MHz)
  *  @param frameRefreshHz Full frame refresh rate in Hz (default 1000 Hz)
- *  @param orientation Fixed compile-time orientation (1 = upright, 2 = 90 deg CW, 3 = 180 deg, 4 = 270 deg CW)
+ *  @param orientation Fixed compile-time orientation (0 = upright, 1 = 90 deg CW, 2 = 180 deg, 3 = 270 deg CW)
  */
 class LedMatrixVisualizer(
   val clockFreqHz:    Int = VisualizerConfig.ClockFreqHz,

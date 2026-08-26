@@ -18,7 +18,7 @@ class Chorus(
   private val delayBufferAddressWidth = log2Ceil(delayBufferSize)
 
   val delayBufferRam = Module(new DualPortBramRam(delayBufferSize, 32))
-  delayBufferRam.io.clock := clock
+  delayBufferRam.io.clk := clock
 
   private val sineTableEntries = 512
   private val sineTableValues: Seq[BigInt] = (0 until sineTableEntries).map { index =>
@@ -27,7 +27,7 @@ class Chorus(
   }
 
   val sineTableRom = Module(new DualPortBramRom(sineTableEntries, 32, sineTableValues))
-  sineTableRom.io.clock := clock
+  sineTableRom.io.clk := clock
 
   private val phaseStepValue = BigInt(Math.round(rateHz * (1L << 24).toDouble / sampleRate))
   private val phaseStep = phaseStepValue.U(24.W)

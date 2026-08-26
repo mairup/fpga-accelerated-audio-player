@@ -40,7 +40,7 @@ python3 client/audio_client.py --target 192.168.5.72
 | **SPK_LEFT** | `C17` | JA[1] | Left Channel Speaker Output |
 | **SPK_RIGHT**| `D18` | JA[2] | Right Channel Speaker Output |
 | **SPK_EXTRA**| `E18` | JA[3] | Extra Audio Output |
-| **BCLK**     | `D17` | JA[7] | ESP32 GPIO 32 |
+| **CLK**      | `D17` | JA[7] | ESP32 GPIO 32 |
 | **WS**       | `E17` | JA[8] | ESP32 GPIO 33 |
 | **SDOUT**    | `F18` | JA[9] | ESP32 GPIO 12 |
 | **SDIN**     | `G18` | JA[10]| ESP32 GPIO 13 |

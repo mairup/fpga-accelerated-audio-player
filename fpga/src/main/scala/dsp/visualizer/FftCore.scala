@@ -7,7 +7,7 @@ class FftCore(val n: Int = 1024, val width: Int = 12) extends BlackBox with HasB
   override val desiredName = s"R22SdfFFT${n}"
 
   val io = IO(new Bundle {
-    val clock = Input(Clock())
+    val clk = Input(Clock())
     val reset = Input(Reset())
     val di_en = Input(Bool())
     val di_re = Input(UInt(width.W))

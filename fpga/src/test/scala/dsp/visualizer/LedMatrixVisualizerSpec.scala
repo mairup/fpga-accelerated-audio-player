@@ -11,7 +11,7 @@ class LedMatrixVisualizerSpec extends AnyFlatSpec with Matchers with ChiselScala
 
   it should "multiplex rows and drive column anodes according to FFT band magnitudes" in {
     // Clock 800 Hz with frame refresh 10 Hz -> 80 Hz row scan -> 10 clock cycles per row slot
-    test(new LedMatrixVisualizer(clockFreqHz = 800, frameRefreshHz = 10, orientation = 1)) { dut =>
+    test(new LedMatrixVisualizer(clockFreqHz = 800, frameRefreshHz = 10, orientation = 0)) { dut =>
       // Set explicit 24-bit band magnitudes
       for (i <- 0 until 8) {
         dut.io.bandMagnitudes(i).poke(0.U(24.W))

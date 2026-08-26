@@ -44,7 +44,7 @@ module R22Sdf_DelayBuffer #(
     parameter   DEPTH = 32,
     parameter   WIDTH = 12
 )(
-    input               clock,  //  Master Clock
+    input               clk,    //  Master Clock
     input               reset,  //  Active High Reset
     input               en,     //  Enable
     input   [WIDTH-1:0] di_re,  //  Data Input (Real)
@@ -59,7 +59,7 @@ if (DEPTH < 16) begin : gen_srl
     reg [WIDTH-1:0] buf_im[0:DEPTH-1];
     integer n;
 
-    always @(posedge clock or posedge reset) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             for (n = 0; n < DEPTH; n = n + 1) begin
                 buf_re[n] <= {WIDTH{1'b0}};
@@ -95,7 +95,7 @@ end else begin : gen_bram
     reg [WIDTH-1:0] reg_do_re = {WIDTH{1'b0}};
     reg [WIDTH-1:0] reg_do_im = {WIDTH{1'b0}};
 
-    always @(posedge clock or posedge reset) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             wr_ptr <= {AW{1'b0}};
             rd_ptr <= {{AW-1{1'b0}}, 1'b1};
@@ -162,7 +162,7 @@ module R22Sdf_Twiddle1024 #(
     parameter   WIDTH = 12,
     parameter   TW_FF = 1   //  Use Output Register
 )(
-    input               clock,  //  Master Clock
+    input               clk,    //  Master Clock
     input   [9:0]       addr,   //  Twiddle Factor Number
     output  [WIDTH-1:0] tw_re,  //  Twiddle Factor (Real)
     output  [WIDTH-1:0] tw_im   //  Twiddle Factor (Imag)
@@ -1200,7 +1200,7 @@ reg [WIDTH-1:0] ff_im;
         wn_re[1023] = 12'h7FF; wn_im[1023] = 12'h00D;
     end
 
-always @(posedge clock) begin
+always @(posedge clk) begin
     ff_re <= wn_re[addr];
     ff_im <= wn_im[addr];
 end
@@ -1219,7 +1219,7 @@ module R22Sdf_SdfUnit #(
     parameter   M = 64,     //  Twiddle Resolution
     parameter   WIDTH = 12  //  Data Bit Length
 )(
-    input               clock,  //  Master Clock
+    input               clk,    //  Master Clock
     input               reset,  //  Active High Asynchronous Reset
     input               di_en,  //  Input Data Enable
     input   [WIDTH-1:0] di_re,  //  Input Data (Real)
@@ -1311,9 +1311,10 @@ reg [WIDTH-1:0] mu_do_im;   //  Multiplication Output Data (Imag)
 reg             mu_do_en;   //  Multiplication Output Data Enable
 
 //----------------------------------------------------------------------
+//----------------------------------------------------------------------
 //  1st Butterfly
 //----------------------------------------------------------------------
-always @(posedge clock or posedge reset) begin
+always @(posedge clk or posedge reset) begin
     if (reset) begin
         di_count <= {LOG_N{1'b0}};
     end else begin
@@ -1339,7 +1340,7 @@ R22Sdf_Butterfly #(.WIDTH(WIDTH),.RH(0)) BF1 (
 );
 
 R22Sdf_DelayBuffer #(.DEPTH(2**(LOG_M-1)),.WIDTH(WIDTH)) DB1 (
-    .clock  (clock      ),
+    .clk    (clk        ),
     .reset  (reset      ),
     .en     (di_en      ),
     .di_re  (db1_di_re  ),
@@ -1353,7 +1354,7 @@ assign  db1_di_im = bf1_bf ? bf1_y1_im : di_im;
 assign  bf1_sp_re = bf1_bf ? bf1_y0_re : bf1_mj ?  db1_do_im : db1_do_re;
 assign  bf1_sp_im = bf1_bf ? bf1_y0_im : bf1_mj ? -db1_do_re : db1_do_im;
 
-always @(posedge clock or posedge reset) begin
+always @(posedge clk or posedge reset) begin
     if (reset) begin
         bf1_sp_en <= 1'b0;
         bf1_count <= {LOG_N{1'b0}};
@@ -1366,7 +1367,7 @@ assign  bf1_start = (di_count == (2**(LOG_M-1)-1));
 assign  bf1_end = (bf1_count == (2**LOG_N-1));
 assign  bf1_mj = (bf1_count[LOG_M-1:LOG_M-2] == 2'd3);
 
-always @(posedge clock) begin
+always @(posedge clk) begin
     bf1_do_re <= bf1_sp_re;
     bf1_do_im <= bf1_sp_im;
 end
@@ -1374,7 +1375,7 @@ end
 //----------------------------------------------------------------------
 //  2nd Butterfly
 //----------------------------------------------------------------------
-always @(posedge clock) begin
+always @(posedge clk) begin
     bf2_bf <= bf1_count[LOG_M-2];
 end
 
@@ -1395,7 +1396,7 @@ R22Sdf_Butterfly #(.WIDTH(WIDTH),.RH(1)) BF2 (
 );
 
 R22Sdf_DelayBuffer #(.DEPTH(2**(LOG_M-2)),.WIDTH(WIDTH)) DB2 (
-    .clock  (clock      ),
+    .clk    (clk        ),
     .reset  (reset      ),
     .en     (bf1_sp_en  ),
     .di_re  (db2_di_re  ),
@@ -1409,7 +1410,7 @@ assign  db2_di_im = bf2_bf ? bf2_y1_im : bf1_do_im;
 assign  bf2_sp_re = bf2_bf ? bf2_y0_re : db2_do_re;
 assign  bf2_sp_im = bf2_bf ? bf2_y0_im : db2_do_im;
 
-always @(posedge clock or posedge reset) begin
+always @(posedge clk or posedge reset) begin
     if (reset) begin
         bf2_sp_en <= 1'b0;
         bf2_count <= {LOG_N{1'b0}};
@@ -1419,17 +1420,17 @@ always @(posedge clock or posedge reset) begin
     end
 end
 
-always @(posedge clock) begin
+always @(posedge clk) begin
     bf2_start <= (bf1_count == (2**(LOG_M-2)-1)) & bf1_sp_en;
 end
 assign  bf2_end = (bf2_count == (2**LOG_N-1));
 
-always @(posedge clock) begin
+always @(posedge clk) begin
     bf2_do_re <= bf2_sp_re;
     bf2_do_im <= bf2_sp_im;
 end
 
-always @(posedge clock or posedge reset) begin
+always @(posedge clk or posedge reset) begin
     if (reset) begin
         bf2_do_en <= 1'b0;
     end else begin
@@ -1446,13 +1447,13 @@ assign  tw_num = bf2_count << (LOG_N-LOG_M);
 assign  tw_addr = tw_num * tw_sel;
 
 R22Sdf_Twiddle1024 #(.WIDTH(WIDTH), .TW_FF(1)) TW (
-    .clock  (clock  ),
+    .clk    (clk    ),
     .addr   (tw_addr),
     .tw_re  (tw_re  ),
     .tw_im  (tw_im  )
 );
 
-always @(posedge clock) begin
+always @(posedge clk) begin
     mu_en <= (tw_addr != {LOG_N{1'b0}});
 end
 assign  mu_a_re = mu_en ? bf2_do_re : {WIDTH{1'bx}};
@@ -1467,12 +1468,12 @@ R22Sdf_Multiply #(.WIDTH(WIDTH)) MU (
     .m_im   (mu_m_im)
 );
 
-always @(posedge clock) begin
+always @(posedge clk) begin
     mu_do_re <= mu_en ? mu_m_re : bf2_do_re;
     mu_do_im <= mu_en ? mu_m_im : bf2_do_im;
 end
 
-always @(posedge clock or posedge reset) begin
+always @(posedge clk or posedge reset) begin
     if (reset) begin
         mu_do_en <= 1'b0;
     end else begin
@@ -1494,7 +1495,7 @@ endmodule
 module R22SdfFFT1024 #(
     parameter   WIDTH = 12
 )(
-    input               clock,  //  Master Clock
+    input               clk,    //  Master Clock
     input               reset,  //  Active High Asynchronous Reset
     input               di_en,  //  Input Data Enable
     input   [WIDTH-1:0] di_re,  //  Input Data (Real)
@@ -1518,7 +1519,7 @@ wire[WIDTH-1:0] su4_do_re;
 wire[WIDTH-1:0] su4_do_im;
 
 R22Sdf_SdfUnit #(.N(1024),.M(1024),.WIDTH(WIDTH)) SU1 (
-    .clock  (clock      ),
+    .clk    (clk        ),
     .reset  (reset      ),
     .di_en  (di_en      ),
     .di_re  (di_re      ),
@@ -1529,7 +1530,7 @@ R22Sdf_SdfUnit #(.N(1024),.M(1024),.WIDTH(WIDTH)) SU1 (
 );
 
 R22Sdf_SdfUnit #(.N(1024),.M(256),.WIDTH(WIDTH)) SU2 (
-    .clock  (clock      ),
+    .clk    (clk        ),
     .reset  (reset      ),
     .di_en  (su1_do_en  ),
     .di_re  (su1_do_re  ),
@@ -1540,7 +1541,7 @@ R22Sdf_SdfUnit #(.N(1024),.M(256),.WIDTH(WIDTH)) SU2 (
 );
 
 R22Sdf_SdfUnit #(.N(1024),.M(64),.WIDTH(WIDTH)) SU3 (
-    .clock  (clock      ),
+    .clk    (clk        ),
     .reset  (reset      ),
     .di_en  (su2_do_en  ),
     .di_re  (su2_do_re  ),
@@ -1551,7 +1552,7 @@ R22Sdf_SdfUnit #(.N(1024),.M(64),.WIDTH(WIDTH)) SU3 (
 );
 
 R22Sdf_SdfUnit #(.N(1024),.M(16),.WIDTH(WIDTH)) SU4 (
-    .clock  (clock      ),
+    .clk    (clk        ),
     .reset  (reset      ),
     .di_en  (su3_do_en  ),
     .di_re  (su3_do_re  ),
@@ -1562,7 +1563,7 @@ R22Sdf_SdfUnit #(.N(1024),.M(16),.WIDTH(WIDTH)) SU4 (
 );
 
 R22Sdf_SdfUnit #(.N(1024),.M(4),.WIDTH(WIDTH)) SU5 (
-    .clock  (clock      ),
+    .clk    (clk        ),
     .reset  (reset      ),
     .di_en  (su4_do_en  ),
     .di_re  (su4_do_re  ),

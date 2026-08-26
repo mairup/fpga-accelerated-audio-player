@@ -24,7 +24,7 @@ class VisualizerTop(
   buffer.io.sampleValid := io.sampleValid
 
   val fft = Module(new FftCore(fftSize, fftWidth))
-  fft.io.clock := clock
+  fft.io.clk   := clock
   fft.io.reset := reset
   fft.io.di_en := buffer.io.burstValid
   fft.io.di_re := buffer.io.burstOut.asUInt

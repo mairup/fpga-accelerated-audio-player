@@ -17,7 +17,7 @@ object VisualizerConfig {
   val FftSize:        Int = 1024
   val ClockFreqHz:    Int = 100_000_000
   val FrameRefreshHz: Int = 1000 // Full matrix refresh (1 kHz -> 8 kHz row scan)
-  val Orientation:    Int = 1    // 1 = upright, 2 = 90 deg CW, 3 = 180 deg, 4 = 270 deg CW
+  val Orientation:    Int = 0    // 0 = upright, 1 = 90 deg CW, 2 = 180 deg, 3 = 270 deg CW
 
   val BinResolutionHz: Double = SampleRateHz.toDouble / FftSize // 46.875 Hz per bin
 

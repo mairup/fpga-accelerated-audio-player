@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 
 class I2sControllerIO extends Bundle {
-  val bclk = Input(Bool())
+  val clk = Input(Bool())
   val ws = Input(Bool())
   val sdOut = Input(Bool())
   val pcmRx = Output(SInt(32.W))
@@ -14,9 +14,9 @@ class I2sControllerIO extends Bundle {
 class I2sController extends Module {
   val io = IO(new I2sControllerIO)
 
-  val bclkSync = RegNext(RegNext(io.bclk))
-  val bclkPrev = RegNext(bclkSync)
-  val bclkRising = bclkSync && !bclkPrev
+  val clkSync = RegNext(RegNext(io.clk))
+  val clkPrev = RegNext(clkSync)
+  val clkRising = clkSync && !clkPrev
 
   val wsSync = RegNext(RegNext(io.ws))
   val wsPrev = RegNext(wsSync)
@@ -35,7 +35,7 @@ class I2sController extends Module {
     isLeftChannel := !wsSync
   }
 
-  when(bclkRising) {
+  when(clkRising) {
     val nextRxCounter = rxBitCounter + 1.U
     rxBitCounter := nextRxCounter
     when(nextRxCounter >= 2.U && nextRxCounter <= 16.U) {
