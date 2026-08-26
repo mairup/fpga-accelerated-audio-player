@@ -13,7 +13,7 @@ UDP-FRAME-BYTES ::= 960
 I2S-FRAME-BYTES ::= 960
 
 MAX-QUEUE-FRAMES ::= 25
-PREBUFFER-FRAMES ::= 5
+PREBUFFER-FRAMES ::= 1
 
 RX-QUEUE ::= Channel MAX-QUEUE-FRAMES
 
@@ -44,11 +44,13 @@ class AudioStreamer:
     return err == null
 
   run -> none:
-    socket := network.udp-open --port=AUDIO-PORT
-
     init-i2s
     task:: i2s-write-loop
     task:: uart-read-loop
+    task:: udp-read-loop
+
+  udp-read-loop -> none:
+    socket := network.udp-open --port=AUDIO-PORT
 
     while true:
       catch:

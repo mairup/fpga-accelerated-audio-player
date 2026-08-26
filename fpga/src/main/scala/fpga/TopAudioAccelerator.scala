@@ -10,9 +10,7 @@ class TopAudioAcceleratorIO extends Bundle {
   val sdOut = Input(Bool())
   val audPwm = Output(Bool())
   val audSd = Output(Bool())
-  val audPwmLeft  = Output(Bool())
-  val audPwmRight = Output(Bool())
-  val audPwmExtra = Output(Bool())
+  val audPwm  = Output(Bool())
 
   val cpuResetN = Input(Bool())
 
@@ -70,7 +68,7 @@ class TopAudioAccelerator extends RawModule {
     val audioPipeline = Module(new AudioPipeline)
     val dac = Module(new SigmaDeltaDAC)
     val uartTransmitter = Module(new UartTransmitter(100_000_000, 115200))
-    io.txSerialPin := uartTransmitter.io.serialTxPin
+    io.txSerialPin := uartTransmitter.io.tx
 
     i2sController.io.clk := io.clk
     i2sController.io.ws := io.ws
@@ -130,13 +128,13 @@ class TopAudioAccelerator extends RawModule {
     val msgIndex = RegInit(0.U(5.W))
     val msgTransmitting = RegInit(false.B)
 
-    when(trigger10Hz && !msgTransmitting && uartTransmitter.io.transmitterReady) {
+    when(trigger10Hz && !msgTransmitting && uartTransmitter.io.ready) {
       msgTransmitting := true.B
       msgIndex := 0.U
     }
 
     when(msgTransmitting) {
-      when(uartTransmitter.io.transmitterReady) {
+      when(uartTransmitter.io.ready) {
         when(msgIndex === (msgLength - 1).U) {
           msgTransmitting := false.B
         }.otherwise {
@@ -145,8 +143,8 @@ class TopAudioAccelerator extends RawModule {
       }
     }
 
-    uartTransmitter.io.inputDataByte := msgBuf(msgIndex)
-    uartTransmitter.io.transmitValid := msgTransmitting
+    uartTransmitter.io.dataWord := msgBuf(msgIndex)
+    uartTransmitter.io.write    := msgTransmitting
 
     val sysClkDiv = RegInit(0.U(12.W))
     val sampleStrobe = WireDefault(false.B)
@@ -175,9 +173,7 @@ class TopAudioAccelerator extends RawModule {
     val activePwm    = Mux(audioEnabled, dac.io.pwmOut, false.B)
 
     io.audPwm      := activePwm  // Onboard 3.5mm jack (AUD_PWM / Pin A11)
-    io.audPwmLeft  := activePwm  // PMOD JA Pin 1 (C17) -> Left Channel Speaker Output
-    io.audPwmRight := activePwm  // PMOD JA Pin 2 (D18) -> Right Channel Speaker Output
-    io.audPwmExtra := activePwm  // PMOD JA Pin 3 (E18) -> Extra Output
+    io.audPwm  := activePwm  // PMOD JA Pin 1 (C17) -> Speaker Output
     io.audSd       := true.B
 
     io.ledOutMaster := io.swOutMaster

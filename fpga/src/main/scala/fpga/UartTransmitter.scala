@@ -5,10 +5,10 @@ import chisel3.util._
 
 class UartTransmitter(clockFrequencyHertz: Int, baudRateBitsPerSecond: Int) extends Module {
   val io = IO(new Bundle {
-    val inputDataByte = Input(UInt(8.W))
-    val transmitValid = Input(Bool())
-    val transmitterReady = Output(Bool())
-    val serialTxPin = Output(Bool())
+    val dataWord = Input(UInt(8.W))
+    val write = Input(Bool())
+    val ready = Output(Bool())
+    val tx  = Output(Bool())
   })
 
   val clockCyclesPerBit = clockFrequencyHertz / baudRateBitsPerSecond
@@ -18,8 +18,8 @@ class UartTransmitter(clockFrequencyHertz: Int, baudRateBitsPerSecond: Int) exte
   val shiftRegister = RegInit(1.U(10.W))
   val isTransmittingState = RegInit(false.B)
 
-  io.transmitterReady := !isTransmittingState
-  io.serialTxPin := shiftRegister(0)
+  io.ready := !isTransmittingState
+  io.tx := shiftRegister(0)
 
   when(isTransmittingState) {
     when(cycleCounter === (clockCyclesPerBit - 1).U) {
@@ -36,8 +36,8 @@ class UartTransmitter(clockFrequencyHertz: Int, baudRateBitsPerSecond: Int) exte
       cycleCounter := cycleCounter + 1.U
     }
   }.otherwise {
-    when(io.transmitValid) {
-      shiftRegister := Cat(1.U(1.W), io.inputDataByte, 0.U(1.W))
+    when(io.write) {
+      shiftRegister := Cat(1.U(1.W), io.dataWord, 0.U(1.W))
       isTransmittingState := true.B
       cycleCounter := 0.U
       bitIndexCounter := 0.U

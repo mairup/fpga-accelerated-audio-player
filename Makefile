@@ -27,7 +27,8 @@ help:
 	@echo "make             - Deploy ESP, build & flash FPGA in parallel, then start client"
 	@echo "make fpga        - Build & flash FPGA bitstream to $(BOARD)"
 	@echo "make fpga build  - Build FPGA bitstream only"
-	@echo "make fpga flash  - Flash FPGA bitstream to $(BOARD) only"
+	@echo "make fpga flash  - Flash FPGA bitstream to $(BOARD) (SRAM, volatile)"
+	@echo "make fpga flash-rom - Flash FPGA bitstream to $(BOARD) (SPI Flash, persistent)"
 	@echo "make esp         - Deploy & run audio streamer on ESP32 ($(ESP_DEVICE))"
 	@echo "make client      - Launch audio streaming client ($(ESP_IP))"
 	@echo "make client usb  - Launch audio streaming client via USB (/dev/ttyUSB0)"
@@ -35,8 +36,11 @@ help:
 
 fpga:
 ifeq ($(FPGA_CMD),flash)
-	@echo "Flashing $(BITSTREAM) to $(BOARD)..."
+	@echo "Flashing $(BITSTREAM) to $(BOARD) (SRAM)..."
 	openFPGALoader -b $(BOARD) $(BITSTREAM)
+else ifeq ($(FPGA_CMD),flash-rom)
+	@echo "Flashing $(BITSTREAM) to $(BOARD) (SPI Flash / ROM)..."
+	openFPGALoader -b $(BOARD) -f $(BITSTREAM)
 else ifeq ($(FPGA_CMD),build)
 	@echo "Recompiling FPGA bitstream..."
 	$(MAKE) -C fpga build
@@ -46,7 +50,7 @@ else ifeq ($(FPGA_CMD),)
 	@echo "Flashing $(BITSTREAM) to $(BOARD)..."
 	openFPGALoader -b $(BOARD) $(BITSTREAM)
 else
-	@echo "Unknown FPGA command '$(FPGA_CMD)'. Use 'make fpga', 'make fpga build', or 'make fpga flash'."
+	@echo "Unknown FPGA command '$(FPGA_CMD)'. Use 'make fpga', 'make fpga build', 'make fpga flash', or 'make fpga flash-rom'."
 	@exit 1
 endif
 

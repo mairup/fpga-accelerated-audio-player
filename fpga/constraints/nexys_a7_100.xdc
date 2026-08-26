@@ -26,15 +26,9 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_ws]
 set_property LOC G18 [get_ports io_clk]
 set_property IOSTANDARD LVCMOS33 [get_ports io_clk]
 
-## DIY Stereo Audio Outputs on PMOD JA (Top Row)
+## Audio Output on PMOD JA Pin 1 (C17)
 set_property LOC C17 [get_ports io_audPwmLeft]
 set_property IOSTANDARD LVCMOS33 [get_ports io_audPwmLeft]
-
-set_property LOC D18 [get_ports io_audPwmRight]
-set_property IOSTANDARD LVCMOS33 [get_ports io_audPwmRight]
-
-set_property LOC E18 [get_ports io_audPwmExtra]
-set_property IOSTANDARD LVCMOS33 [get_ports io_audPwmExtra]
 
 ## Onboard Switches (SW0 - SW4): Master out, FX master, Overdrive, Chorus, Tremolo
 set_property LOC J15 [get_ports io_swOutMaster]
