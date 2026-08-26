@@ -96,6 +96,8 @@ class TopAudioAccelerator extends RawModule {
       }
     }
 
+    /// UART
+
     val timer10Hz = RegInit(0.U(24.W))
     val trigger10Hz = WireDefault(false.B)
     val latchedBands = RegInit(VecInit(Seq.fill(8)(0.U(24.W))))
@@ -148,6 +150,10 @@ class TopAudioAccelerator extends RawModule {
     uartTransmitter.io.inputDataByte := msgBuf(msgIndex)
     uartTransmitter.io.transmitValid := msgTransmitting
 
+    /// END UART
+
+    /// DAC/TEST TONES
+
     val sysClkDiv = RegInit(0.U(12.W))
     val sampleStrobe = WireDefault(false.B)
     when(sysClkDiv === 2083.U) {
@@ -159,7 +165,7 @@ class TopAudioAccelerator extends RawModule {
 
     val tonePhase = RegInit(0.U(32.W))
     when(sampleStrobe) {
-      tonePhase := tonePhase + 39371073.U
+      tonePhase := tonePhase + 39371073.U // 440 Hz
     }
     val toneSample = Mux(tonePhase(31), (-1073741824).S(32.W), 1073741824.S(32.W))
 
@@ -169,8 +175,10 @@ class TopAudioAccelerator extends RawModule {
 
     dac.io.sampleIn := audioToDac
     dac.io.sampleValid := dacValid
+    
 
-    // Output is enabled if SW15 (Test Tone), SW14 (Test PWM), or SW0 (Master Out) is ON
+    /// DIRECT PWM TONE TEST
+
     val audioEnabled = io.swTestTone || io.swTestPwm || io.swOutMaster
     val activePwm    = Mux(audioEnabled, dac.io.pwmOut, false.B)
 
@@ -180,6 +188,7 @@ class TopAudioAccelerator extends RawModule {
     io.audPwmExtra := activePwm  // PMOD JA Pin 3 (E18) -> Extra Output
     io.audSd       := true.B
 
+  
     io.ledOutMaster := io.swOutMaster
     io.ledFxMaster  := audioPipeline.io.ledFxMaster
     io.ledOverdrive := audioPipeline.io.ledOverdrive
@@ -188,6 +197,7 @@ class TopAudioAccelerator extends RawModule {
     io.ledTestPwm   := io.swTestPwm
     io.ledTestTone  := io.swTestTone
 
+    /// CLOCK ALIVE LED (LED6)
     val clkSync = ShiftRegister(io.clk, 2)
     val clkToggle = RegInit(false.B)
     when(clkSync && !RegNext(clkSync)) {
@@ -195,6 +205,7 @@ class TopAudioAccelerator extends RawModule {
     }
     io.ledClkAct := clkToggle
 
+    /// I2S WS ACT LED (LED7)
     val wsSync = ShiftRegister(io.ws, 2)
     val wsToggle = RegInit(false.B)
     when(wsSync =/= RegNext(wsSync)) {
@@ -202,6 +213,7 @@ class TopAudioAccelerator extends RawModule {
     }
     io.ledWsAct := wsToggle
 
+    /// RX VALID LED (LED8)
     val validStretch = RegInit(0.U(24.W))
     when(i2sController.io.pcmRxValid) {
       validStretch := 5000000.U
@@ -210,9 +222,10 @@ class TopAudioAccelerator extends RawModule {
     }
     io.ledRxValid := validStretch > 0.U
 
+    /// VOLUME LED (LEDs 9-13)
     io.ledVolume := absSample(30, 26)
 
-    // 8x8 LED Matrix Spectrum Visualizer on PMOD JC & JD
+    /// MATRIX VISUALIZER (PMOD JC & JD)
     val matrixVisualizer = Module(new dsp.visualizer.LedMatrixVisualizer(100_000_000, 1000, 0))
     matrixVisualizer.io.bandMagnitudes := visualizer.io.catVolume
     io.jc1  := matrixVisualizer.io.jc1

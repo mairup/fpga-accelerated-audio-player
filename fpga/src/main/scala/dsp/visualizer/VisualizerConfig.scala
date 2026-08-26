@@ -32,7 +32,7 @@ object VisualizerConfig {
   //   - Band 4: 1125 Hz to 2250 Hz (Upper-mid)
   //   - Band 5: 2250 Hz to 4500 Hz (Presence)
   //   - Band 6: 4500 Hz to 9000 Hz (Brilliance)
-  //   - Band 7: 9000 Hz to 24000 Hz (Air)
+  //   - Band 7: 9000 Hz to 16000 Hz (Air)
   val BandCutoffsHz: Seq[Int] = Seq(140, 280, 560, 1125, 2250, 4500, 9000)
   val MaxFreqHz:     Int      = 16_000
 

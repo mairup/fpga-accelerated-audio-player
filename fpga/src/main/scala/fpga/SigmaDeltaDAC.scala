@@ -16,11 +16,11 @@ class SigmaDeltaDAC extends Module {
 
   // Linear Interpolator across the ~2083 clock cycles (100 MHz / 48 kHz)
   val currentSample = RegInit(0x80000000L.U(32.W))
-  val targetSample  = RegInit(0x80000000L.U(32.W))
+  val nextSample  = RegInit(0x80000000L.U(32.W))
   val stepDelta     = RegInit(0.S(32.W))
 
   when(io.sampleValid) {
-    targetSample  := sampleUnsigned
+    nextSample  := sampleUnsigned
     // diff >> 11 approximates (target - current) / 2048
     val diff      = sampleUnsigned.asSInt - currentSample.asSInt
     stepDelta     := diff >> 11
