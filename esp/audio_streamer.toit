@@ -62,22 +62,29 @@ class AudioStreamer:
 
   uart-read-loop -> none:
     port/uart.Port? := null
-    catch:
-      // We catch exceptions here because claiming Pins 1/3 (UART0)
-      // might disrupt Jaguar's monitor.
+    err := catch:
       port = uart.Port --rx=3 --tx=1 --baud_rate=2000000
     
-    if not port: return
+    if err != null or not port:
+      print "UART0 init failed with error: $err"
+      return
     
+    print "UART0 listening at 2000000 baud on pins rx=3 tx=1"
     reader := port.in
     synchronizer := PacketSynchronizer
+    rx-count := 0
     
     while true:
-      catch:
+      err2 := catch:
         frame := synchronizer.read-frame reader
         if RX-QUEUE.size < MAX-QUEUE-FRAMES:
           RX-QUEUE.send frame
         usb-active-until = Time.monotonic_us + 1_000_000
+        rx-count++
+        if rx-count % 100 == 0:
+          print "UART received $rx-count frames"
+      if err2 != null:
+        print "UART frame read error: $err2"
 
   i2s-write-loop -> none:
     silence-buf := ByteArray I2S-FRAME-BYTES
