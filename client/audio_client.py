@@ -111,7 +111,12 @@ class AudioStreamerClient:
         self.static_test = static_test
         self.usb_port = usb_port
         self.baud = baud
-        self.serial = serial.Serial(self.usb_port, self.baud) if self.usb_port else None
+        if self.usb_port:
+            self.serial = serial.Serial(self.usb_port, self.baud, timeout=1)
+            self.serial.dtr = False
+            self.serial.rts = False
+        else:
+            self.serial = None
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.running = False
         self.seq = 0
@@ -158,6 +163,7 @@ class AudioStreamerClient:
             try:
                 if self.serial:
                     self.serial.write(SYNC_WORD + payload)
+                    self.serial.flush()
                 else:
                     self.sock.sendto(payload, (self.target_host, self.target_port))
                 self.tx_count += 1
@@ -189,6 +195,7 @@ class AudioStreamerClient:
             try:
                 if self.serial:
                     self.serial.write(SYNC_WORD + raw_in)
+                    self.serial.flush()
                 else:
                     self.sock.sendto(raw_in, (self.target_host, self.target_port))
                 self.tx_count += 1
@@ -221,6 +228,7 @@ class AudioStreamerClient:
             try:
                 if self.serial:
                     self.serial.write(SYNC_WORD + raw_in)
+                    self.serial.flush()
                 else:
                     self.sock.sendto(raw_in, (self.target_host, self.target_port))
                 self.tx_count += 1
@@ -273,6 +281,7 @@ class AudioStreamerClient:
                     self.seq = (self.seq + 1) & 0xFFFFFFFF
                     if self.serial:
                         self.serial.write(SYNC_WORD + raw_in)
+                        self.serial.flush()
                     else:
                         self.sock.sendto(raw_in, (self.target_host, self.target_port))
                     self.tx_count += 1
