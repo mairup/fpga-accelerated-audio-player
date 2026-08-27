@@ -1,7 +1,8 @@
 BOARD ?= nexys_a7_100
 BITSTREAM ?= fpga/TopAudioAccelerator.bit
-ESP_DEVICE ?= forbidden-fruit
+ESP_DEVICE ?= nervous-bother
 ESP_IP ?= 192.168.5.73
+ESP_USB ?= /dev/ttyUSB2
 JAG ?= $(shell which jag 2>/dev/null || echo $(HOME)/.local/bin/jag)
 PYTHON ?= python3
 
@@ -56,8 +57,8 @@ esp:
 
 client:
 ifeq ($(CLIENT_CMD),usb)
-	@echo "Starting audio client pointing to USB (/dev/ttyUSB0)..."
-	$(PYTHON) client/audio_client.py --usb /dev/ttyUSB0
+	@echo "Starting audio client pointing to USB ($(ESP_USB))..."
+	$(PYTHON) client/audio_client.py --usb $(ESP_USB)
 else ifeq ($(CLIENT_CMD),)
 	@echo "Starting audio client pointing to $(ESP_IP)..."
 	$(PYTHON) client/audio_client.py --target $(ESP_IP)
