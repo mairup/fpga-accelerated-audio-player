@@ -61,14 +61,19 @@ class AudioStreamer:
             RX-QUEUE.send datagram.data
 
   uart-read-loop -> none:
-    // We catch exceptions here because claiming Pins 1/3 (UART0)
-    // might disrupt Jaguar's monitor.
+    port/uart.Port? := null
     catch:
-      port := uart.Port --rx=3 --tx=1 --baud_rate=2000000
-      reader := port.in
-      synchronizer := PacketSynchronizer
-      
-      while true:
+      // We catch exceptions here because claiming Pins 1/3 (UART0)
+      // might disrupt Jaguar's monitor.
+      port = uart.Port --rx=3 --tx=1 --baud_rate=2000000
+    
+    if not port: return
+    
+    reader := port.in
+    synchronizer := PacketSynchronizer
+    
+    while true:
+      catch:
         frame := synchronizer.read-frame reader
         if RX-QUEUE.size < MAX-QUEUE-FRAMES:
           RX-QUEUE.send frame
