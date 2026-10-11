@@ -1,0 +1,63 @@
+digraph FPGA {
+  rankdir=LR;
+  graph [splines=ortho, bgcolor=transparent, nodesep=0.5, ranksep=0.8, fontname=Helvetica];
+  node [shape=box, style="filled,rounded", fillcolor=white, color=black, fontname=Helvetica, fontsize=11, penwidth=1];
+  edge [color=black, fontname=Helvetica, fontsize=9, arrowsize=0.7];
+
+  subgraph cluster_TopAudioAccelerator {
+    label="TopAudioAccelerator"; labeljust=l;
+    style="filled,rounded"; fillcolor=white; color=black;
+    fontname=Helvetica; fontsize=11;
+    subgraph cluster_audioPipeline {
+      label="AudioPipeline"; labeljust=l;
+      style="filled,rounded"; fillcolor=white; color=black;
+      fontname=Helvetica; fontsize=11;
+      subgraph cluster_chorus {
+        label="Chorus"; labeljust=l;
+        style="filled,rounded"; fillcolor=white; color=black;
+        fontname=Helvetica; fontsize=11;
+        delayBufferRam [label="DualPortBramRam"];
+        sineTableRom [label="DualPortBramRom"];
+      }
+      overdrive [label="Overdrive"];
+      tremolo [label="Tremolo"];
+    }
+    dac [label="SigmaDeltaDAC"];
+    i2sController [label="I2sController"];
+    subgraph cluster_matrixVisualizer {
+      label="LedMatrixVisualizer"; labeljust=l;
+      style="filled,rounded"; fillcolor=white; color=black;
+      fontname=Helvetica; fontsize=11;
+      driver [label="LedMatrixDriver"];
+    }
+    uartTransmitter [label="UartTransmitter"];
+    subgraph cluster_visualizer {
+      label="VisualizerTop"; labeljust=l;
+      style="filled,rounded"; fillcolor=white; color=black;
+      fontname=Helvetica; fontsize=11;
+      binner [label="FFTMagnitudeBinner"];
+      buffer [label="SampleBuffer"];
+      fft [label="FftCore"];
+      tracker [label="FFTTemporalTracker"];
+    }
+  }
+
+  audioPipeline -> dac [xlabel="outValid\nBool()"];
+  audioPipeline -> dac [xlabel="sampleOut\nSInt(32.W)"];
+  binner -> tracker [xlabel="binMagnitudes\nVec(8, UInt(24.W))"];
+  binner -> tracker [xlabel="binValid\nBool()"];
+  buffer -> fft [xlabel="burstOut\nSInt(12.W)"];
+  buffer -> fft [xlabel="burstValid\nBool()"];
+  chorus -> tremolo [xlabel="outValid\nBool()"];
+  chorus -> tremolo [xlabel="sampleOut\nSInt(32.W)"];
+  fft -> binner [xlabel="do_en\nBool()"];
+  fft -> binner [xlabel="do_im\nUInt(12.W)"];
+  fft -> binner [xlabel="do_re\nUInt(12.W)"];
+  i2sController -> audioPipeline [xlabel="pcmRx\nSInt(32.W)"];
+  i2sController -> visualizer [xlabel="pcmRx\nSInt(32.W)"];
+  i2sController -> audioPipeline [xlabel="pcmRxValid\nBool()"];
+  i2sController -> visualizer [xlabel="pcmRxValid\nBool()"];
+  overdrive -> chorus [xlabel="outValid\nBool()"];
+  overdrive -> chorus [xlabel="sampleOut\nSInt(32.W)"];
+  visualizer -> matrixVisualizer [xlabel="catVolume\nVec(8, UInt(24.W))"];
+}

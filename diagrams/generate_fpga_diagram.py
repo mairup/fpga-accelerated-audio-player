@@ -14,6 +14,8 @@ Run:  python3 diagrams/generate_fpga_diagram.py
 import json
 import os
 import re
+import shutil
+import subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "fpga", "src", "main", "scala")
@@ -309,10 +311,61 @@ def mermaid(graph):
     return '\n'.join(L)
 
 
+def dot_source(graph):
+    """Render the graph as Graphviz DOT (clean monochrome datapath style)."""
+    inst_cls = {h['inst']: h['cls'] for h in graph['hierarchy']}
+    cls_inst = {h['cls']: h['inst'] for h in graph['hierarchy']}
+    children = {}
+    for h in graph['hierarchy']:
+        children.setdefault(h['parent'], []).append(h['inst'])
+
+    L = [
+        'digraph FPGA {',
+        '  rankdir=LR;',
+        '  graph [splines=ortho, bgcolor=transparent, nodesep=0.5, ranksep=0.8, fontname=Helvetica];',
+        '  node [shape=box, style="filled,rounded", fillcolor=white, color=black, fontname=Helvetica, fontsize=11, penwidth=1];',
+        '  edge [color=black, fontname=Helvetica, fontsize=9, arrowsize=0.7];',
+        '',
+    ]
+
+    def emit(parent_cls, depth):
+        ind = '  ' * depth
+        for inst in sorted(children.get(parent_cls, [])):
+            cls = inst_cls[inst]
+            if cls in children:
+                L.append(f'{ind}subgraph cluster_{inst} {{')
+                L.append(f'{ind}  label="{cls}"; labeljust=l;')
+                L.append(f'{ind}  style="filled,rounded"; fillcolor=white; color=black;')
+                L.append(f'{ind}  fontname=Helvetica; fontsize=11;')
+                emit(cls, depth + 1)
+                L.append(f'{ind}}}')
+            else:
+                L.append(f'{ind}{inst} [label="{cls}"];')
+
+    root_classes = sorted({h['parent'] for h in graph['hierarchy']
+                           if h['parent'] not in cls_inst})
+    for rc in root_classes:
+        L.append(f'  subgraph cluster_{rc} {{')
+        L.append(f'    label="{rc}"; labeljust=l;')
+        L.append('    style="filled,rounded"; fillcolor=white; color=black;')
+        L.append('    fontname=Helvetica; fontsize=11;')
+        emit(rc, 2)
+        L.append('  }')
+
+    L.append('')
+    for e in graph['connections']:
+        typ = e['type'] or '?'
+        L.append(f'  {e["from"]} -> {e["to"]} [xlabel="{e["from_port"]}\\n{typ}"];')
+    L.append('}')
+    return '\n'.join(L)
+
+
 def main():
     graph = build_graph()
     json_path = os.path.join(OUT, 'fpga-design.json')
     md_path = os.path.join(OUT, 'fpga-design.md')
+    dot_path = os.path.join(OUT, 'fpga-design.dot')
+    svg_path = os.path.join(OUT, 'fpga-design.svg')
     with open(json_path, 'w') as f:
         json.dump(graph, f, indent=2)
         f.write('\n')
@@ -321,8 +374,20 @@ def main():
         f.write('> Auto-generated from the Chisel sources by `generate_fpga_diagram.py`.\n')
         f.write('> Do not edit by hand; re-run the script to regenerate.\n\n')
         f.write('```mermaid\n' + mermaid(graph) + '\n```\n')
+    with open(dot_path, 'w') as f:
+        f.write(dot_source(graph) + '\n')
+    if shutil.which('dot'):
+        r = subprocess.run(['dot', '-Tsvg', '-o', svg_path, dot_path],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            print('dot failed:', r.stderr[:500])
+        else:
+            print(f'wrote {svg_path}')
+    else:
+        print('dot not found; wrote .dot only')
     print(f'wrote {json_path}')
     print(f'wrote {md_path}')
+    print(f'wrote {dot_path}')
     print(f'modules: {len(graph["modules"])}')
     print(f'instances: {len(graph["hierarchy"])}')
     print(f'connections: {len(graph["connections"])}')
