@@ -9,17 +9,17 @@ flowchart TB
     PA --> CLIENT["client/audio_client.py"]
   end
 
-  CLIENT -- "UDP :4440 / USB serial 2 Mbaud" --> BRIDGE["ESP32 · audio_streamer.toit<br/>I2S master, 48 kHz / 16-bit"]
+  CLIENT -- "UDP :4440 / USB serial 2 Mbaud<br/>480 samples × 16-bit mono (960 B)" --> BRIDGE["ESP32 · audio_streamer.toit<br/>I2S master, 48 kHz / 16-bit"]
 
-  BRIDGE -- "I2S: SCK / WS / SD" --> FPGA["Nexys A7 100T"]
+  BRIDGE -- "I2S: SCK / WS / SD · 16-bit mono" --> FPGA["Nexys A7 100T"]
 
   subgraph FPGA2["Nexys A7 100T · TopAudioAccelerator"]
-    I2S["I2sController"] --> FX["AudioPipeline<br/>overdrive → chorus → tremolo"]
-    FX --> DAC["SigmaDeltaDAC<br/>PDM → PWM"]
-    DAC --> OUT["PMOD JA + 3.5 mm jack"]
-    I2S --> VIZ["VisualizerTop<br/>1024-pt FFT → 8 bands"]
-    VIZ --> MATRIX["LedMatrixVisualizer<br/>8×8 matrix, PMOD JC/JD"]
-    VIZ --> UART["UART telemetry, 115200"]
+    I2S["I2sController"] -- "SInt(32.W) Q31" --> FX["AudioPipeline<br/>overdrive → chorus → tremolo"]
+    FX -- "SInt(32.W) Q31" --> DAC["SigmaDeltaDAC<br/>PDM → PWM"]
+    DAC -- "1-bit PDM" --> OUT["PMOD JA + 3.5 mm jack"]
+    I2S -- "SInt(32.W) Q31" --> VIZ["VisualizerTop<br/>1024-pt FFT → 8 bands"]
+    VIZ -- "Vec(8, UInt(24.W))" --> MATRIX["LedMatrixVisualizer<br/>8×8 matrix, PMOD JC/JD"]
+    VIZ -- "Vec(8, UInt(24.W)) → ASCII" --> UART["UART telemetry, 115200"]
   end
 
   SW["SW0-4, SW14, SW15"] --> FPGA2

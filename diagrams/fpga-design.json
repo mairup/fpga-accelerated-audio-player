@@ -1,0 +1,509 @@
+{
+  "modules": [
+    {
+      "name": "AudioPipeline",
+      "kind": "Module",
+      "pkg": "dsp",
+      "file": "fpga/src/main/scala/dsp/AudioPipeline.scala"
+    },
+    {
+      "name": "Chorus",
+      "kind": "Module",
+      "pkg": "dsp",
+      "file": "fpga/src/main/scala/dsp/Chorus.scala"
+    },
+    {
+      "name": "DualPortBramRam",
+      "kind": "BlackBox",
+      "pkg": "dsp",
+      "file": "fpga/src/main/scala/dsp/BramRom.scala"
+    },
+    {
+      "name": "DualPortBramRom",
+      "kind": "BlackBox",
+      "pkg": "dsp",
+      "file": "fpga/src/main/scala/dsp/BramRom.scala"
+    },
+    {
+      "name": "FFTMagnitudeBinner",
+      "kind": "Module",
+      "pkg": "dsp.visualizer",
+      "file": "fpga/src/main/scala/dsp/visualizer/FFTMagnitudeBinner.scala"
+    },
+    {
+      "name": "FFTTemporalTracker",
+      "kind": "Module",
+      "pkg": "dsp.visualizer",
+      "file": "fpga/src/main/scala/dsp/visualizer/FFTTemporalTracker.scala"
+    },
+    {
+      "name": "FftCore",
+      "kind": "BlackBox",
+      "pkg": "dsp.visualizer",
+      "file": "fpga/src/main/scala/dsp/visualizer/FftCore.scala"
+    },
+    {
+      "name": "I2sController",
+      "kind": "Module",
+      "pkg": "fpga",
+      "file": "fpga/src/main/scala/fpga/I2sController.scala"
+    },
+    {
+      "name": "LedMatrixDriver",
+      "kind": "RawModule",
+      "pkg": "fpga",
+      "file": "fpga/src/main/scala/fpga/LedMatrixDriver.scala"
+    },
+    {
+      "name": "LedMatrixVisualizer",
+      "kind": "Module",
+      "pkg": "dsp.visualizer",
+      "file": "fpga/src/main/scala/dsp/visualizer/LedMatrixVisualizer.scala"
+    },
+    {
+      "name": "Overdrive",
+      "kind": "Module",
+      "pkg": "dsp",
+      "file": "fpga/src/main/scala/dsp/Overdrive.scala"
+    },
+    {
+      "name": "SampleBuffer",
+      "kind": "Module",
+      "pkg": "dsp.visualizer",
+      "file": "fpga/src/main/scala/dsp/visualizer/SampleBuffer.scala"
+    },
+    {
+      "name": "SigmaDeltaDAC",
+      "kind": "Module",
+      "pkg": "fpga",
+      "file": "fpga/src/main/scala/fpga/SigmaDeltaDAC.scala"
+    },
+    {
+      "name": "TopAudioAccelerator",
+      "kind": "RawModule",
+      "pkg": "fpga",
+      "file": "fpga/src/main/scala/fpga/TopAudioAccelerator.scala"
+    },
+    {
+      "name": "Tremolo",
+      "kind": "Module",
+      "pkg": "dsp",
+      "file": "fpga/src/main/scala/dsp/Tremolo.scala"
+    },
+    {
+      "name": "UartTransmitter",
+      "kind": "Module",
+      "pkg": "fpga",
+      "file": "fpga/src/main/scala/fpga/UartTransmitter.scala"
+    },
+    {
+      "name": "VisualizerTop",
+      "kind": "Module",
+      "pkg": "dsp.visualizer",
+      "file": "fpga/src/main/scala/dsp/visualizer/VisualizerTop.scala"
+    }
+  ],
+  "hierarchy": [
+    {
+      "parent": "AudioPipeline",
+      "inst": "chorus",
+      "cls": "Chorus",
+      "args": []
+    },
+    {
+      "parent": "AudioPipeline",
+      "inst": "overdrive",
+      "cls": "Overdrive",
+      "args": []
+    },
+    {
+      "parent": "AudioPipeline",
+      "inst": "tremolo",
+      "cls": "Tremolo",
+      "args": []
+    },
+    {
+      "parent": "Chorus",
+      "inst": "delayBufferRam",
+      "cls": "DualPortBramRam",
+      "args": [
+        "delayBufferSize",
+        "32"
+      ]
+    },
+    {
+      "parent": "Chorus",
+      "inst": "sineTableRom",
+      "cls": "DualPortBramRom",
+      "args": [
+        "sineTableEntries",
+        "32",
+        "sineTableValues"
+      ]
+    },
+    {
+      "parent": "LedMatrixVisualizer",
+      "inst": "driver",
+      "cls": "LedMatrixDriver",
+      "args": []
+    },
+    {
+      "parent": "TopAudioAccelerator",
+      "inst": "audioPipeline",
+      "cls": "AudioPipeline",
+      "args": []
+    },
+    {
+      "parent": "TopAudioAccelerator",
+      "inst": "dac",
+      "cls": "SigmaDeltaDAC",
+      "args": []
+    },
+    {
+      "parent": "TopAudioAccelerator",
+      "inst": "i2sController",
+      "cls": "I2sController",
+      "args": []
+    },
+    {
+      "parent": "TopAudioAccelerator",
+      "inst": "matrixVisualizer",
+      "cls": "LedMatrixVisualizer",
+      "args": [
+        "100_000_000",
+        "1000",
+        "0"
+      ]
+    },
+    {
+      "parent": "TopAudioAccelerator",
+      "inst": "uartTransmitter",
+      "cls": "UartTransmitter",
+      "args": [
+        "100_000_000",
+        "115200"
+      ]
+    },
+    {
+      "parent": "TopAudioAccelerator",
+      "inst": "visualizer",
+      "cls": "VisualizerTop",
+      "args": [
+        "1024",
+        "8",
+        "12",
+        "24"
+      ]
+    },
+    {
+      "parent": "VisualizerTop",
+      "inst": "binner",
+      "cls": "FFTMagnitudeBinner",
+      "args": [
+        "fftSize",
+        "numBins",
+        "fftWidth",
+        "outWidth"
+      ]
+    },
+    {
+      "parent": "VisualizerTop",
+      "inst": "buffer",
+      "cls": "SampleBuffer",
+      "args": [
+        "fftSize",
+        "fftWidth"
+      ]
+    },
+    {
+      "parent": "VisualizerTop",
+      "inst": "fft",
+      "cls": "FftCore",
+      "args": [
+        "fftSize",
+        "fftWidth"
+      ]
+    },
+    {
+      "parent": "VisualizerTop",
+      "inst": "tracker",
+      "cls": "FFTTemporalTracker",
+      "args": [
+        "numBins",
+        "outWidth"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "audioPipeline",
+      "from_port": "outValid",
+      "to": "dac",
+      "to_port": "sampleValid",
+      "type": "Bool()"
+    },
+    {
+      "from": "audioPipeline",
+      "from_port": "sampleOut",
+      "to": "dac",
+      "to_port": "sampleIn",
+      "type": "SInt(32.W)"
+    },
+    {
+      "from": "binner",
+      "from_port": "binMagnitudes",
+      "to": "tracker",
+      "to_port": "binMagnitudes",
+      "type": "Vec(8, UInt(24.W))"
+    },
+    {
+      "from": "binner",
+      "from_port": "binValid",
+      "to": "tracker",
+      "to_port": "valid",
+      "type": "Bool()"
+    },
+    {
+      "from": "buffer",
+      "from_port": "burstOut",
+      "to": "fft",
+      "to_port": "di_re",
+      "type": "SInt(12.W)"
+    },
+    {
+      "from": "buffer",
+      "from_port": "burstValid",
+      "to": "fft",
+      "to_port": "di_en",
+      "type": "Bool()"
+    },
+    {
+      "from": "chorus",
+      "from_port": "outValid",
+      "to": "tremolo",
+      "to_port": "sampleValid",
+      "type": "Bool()"
+    },
+    {
+      "from": "chorus",
+      "from_port": "sampleOut",
+      "to": "tremolo",
+      "to_port": "sampleIn",
+      "type": "SInt(32.W)"
+    },
+    {
+      "from": "fft",
+      "from_port": "do_en",
+      "to": "binner",
+      "to_port": "valid",
+      "type": "Bool()"
+    },
+    {
+      "from": "fft",
+      "from_port": "do_im",
+      "to": "binner",
+      "to_port": "im",
+      "type": "UInt(12.W)"
+    },
+    {
+      "from": "fft",
+      "from_port": "do_re",
+      "to": "binner",
+      "to_port": "re",
+      "type": "UInt(12.W)"
+    },
+    {
+      "from": "i2sController",
+      "from_port": "pcmRx",
+      "to": "audioPipeline",
+      "to_port": "sampleIn",
+      "type": "SInt(32.W)"
+    },
+    {
+      "from": "i2sController",
+      "from_port": "pcmRx",
+      "to": "visualizer",
+      "to_port": "sampleIn",
+      "type": "SInt(32.W)"
+    },
+    {
+      "from": "i2sController",
+      "from_port": "pcmRxValid",
+      "to": "audioPipeline",
+      "to_port": "sampleValid",
+      "type": "Bool()"
+    },
+    {
+      "from": "i2sController",
+      "from_port": "pcmRxValid",
+      "to": "visualizer",
+      "to_port": "sampleValid",
+      "type": "Bool()"
+    },
+    {
+      "from": "overdrive",
+      "from_port": "outValid",
+      "to": "chorus",
+      "to_port": "sampleValid",
+      "type": "Bool()"
+    },
+    {
+      "from": "overdrive",
+      "from_port": "sampleOut",
+      "to": "chorus",
+      "to_port": "sampleIn",
+      "type": "SInt(32.W)"
+    },
+    {
+      "from": "visualizer",
+      "from_port": "catVolume",
+      "to": "matrixVisualizer",
+      "to_port": "bandMagnitudes",
+      "type": "Vec(8, UInt(24.W))"
+    }
+  ],
+  "inst_ports": {
+    "audioPipeline": {
+      "swFxMaster": "Bool()",
+      "swOverdrive": "Bool()",
+      "swChorus": "Bool()",
+      "swTremolo": "Bool()",
+      "sampleIn": "SInt(32.W)",
+      "sampleValid": "Bool()",
+      "sampleOut": "SInt(32.W)",
+      "outValid": "Bool()",
+      "ledFxMaster": "Bool()",
+      "ledOverdrive": "Bool()",
+      "ledChorus": "Bool()",
+      "ledTremolo": "Bool()"
+    },
+    "binner": {
+      "re": "SInt(12.W)",
+      "im": "SInt(12.W)",
+      "valid": "Bool()",
+      "frameDone": "Bool()",
+      "binMagnitudes": "Vec(8, UInt(24.W))",
+      "binValid": "Bool()"
+    },
+    "buffer": {
+      "sampleIn": "SInt(12.W)",
+      "sampleValid": "Bool()",
+      "burstOut": "SInt(12.W)",
+      "burstValid": "Bool()",
+      "burstDone": "Bool()"
+    },
+    "chorus": {
+      "sampleIn": "SInt(32.W)",
+      "sampleValid": "Bool()",
+      "sampleOut": "SInt(32.W)",
+      "outValid": "Bool()"
+    },
+    "dac": {
+      "sampleIn": "SInt(32.W)",
+      "sampleValid": "Bool()",
+      "pwmOut": "Bool()"
+    },
+    "delayBufferRam": {
+      "clk": "Clock()",
+      "weA": "Bool()",
+      "addrA": "UInt(addrWidth.W)",
+      "dinA": "SInt(32.W)",
+      "addrB": "UInt(addrWidth.W)",
+      "doutB": "SInt(32.W)"
+    },
+    "driver": {
+      "rows": "UInt(8.W)",
+      "cols": "UInt(8.W)",
+      "orientation": "UInt(2.W)",
+      "jc1": "Bool()",
+      "jc2": "Bool()",
+      "jc3": "Bool()",
+      "jc4": "Bool()",
+      "jc7": "Bool()",
+      "jc8": "Bool()",
+      "jc9": "Bool()",
+      "jc10": "Bool()",
+      "jd1": "Bool()",
+      "jd2": "Bool()",
+      "jd3": "Bool()",
+      "jd4": "Bool()",
+      "jd7": "Bool()",
+      "jd8": "Bool()",
+      "jd9": "Bool()",
+      "jd10": "Bool()"
+    },
+    "fft": {
+      "clk": "Clock()",
+      "reset": "Reset()",
+      "di_en": "Bool()",
+      "di_re": "UInt(12.W)",
+      "di_im": "UInt(12.W)",
+      "do_en": "Bool()",
+      "do_re": "UInt(12.W)",
+      "do_im": "UInt(12.W)"
+    },
+    "i2sController": {
+      "clk": "Bool()",
+      "ws": "Bool()",
+      "sdOut": "Bool()",
+      "pcmRx": "SInt(32.W)",
+      "pcmRxValid": "Bool()"
+    },
+    "matrixVisualizer": {
+      "bandMagnitudes": "Vec(8, UInt(24.W))",
+      "jc1": "Bool()",
+      "jc2": "Bool()",
+      "jc3": "Bool()",
+      "jc4": "Bool()",
+      "jc7": "Bool()",
+      "jc8": "Bool()",
+      "jc9": "Bool()",
+      "jc10": "Bool()",
+      "jd1": "Bool()",
+      "jd2": "Bool()",
+      "jd3": "Bool()",
+      "jd4": "Bool()",
+      "jd7": "Bool()",
+      "jd8": "Bool()",
+      "jd9": "Bool()",
+      "jd10": "Bool()"
+    },
+    "overdrive": {
+      "sampleIn": "SInt(32.W)",
+      "sampleValid": "Bool()",
+      "sampleOut": "SInt(32.W)",
+      "outValid": "Bool()"
+    },
+    "sineTableRom": {
+      "clk": "Clock()",
+      "addrA": "UInt(addrWidth.W)",
+      "addrB": "UInt(addrWidth.W)",
+      "dataA": "SInt(32.W)",
+      "dataB": "SInt(32.W)"
+    },
+    "tracker": {
+      "binMagnitudes": "Vec(8, UInt(24.W))",
+      "valid": "Bool()",
+      "catVolume": "Vec(8, UInt(24.W))",
+      "newUpdate": "Bool()"
+    },
+    "tremolo": {
+      "sampleIn": "SInt(32.W)",
+      "sampleValid": "Bool()",
+      "sampleOut": "SInt(32.W)",
+      "outValid": "Bool()"
+    },
+    "uartTransmitter": {
+      "inputDataByte": "UInt(8.W)",
+      "transmitValid": "Bool()",
+      "transmitterReady": "Bool()",
+      "serialTxPin": "Bool()"
+    },
+    "visualizer": {
+      "sampleIn": "SInt(32.W)",
+      "sampleValid": "Bool()",
+      "catVolume": "Vec(8, UInt(24.W))",
+      "newUpdate": "Bool()"
+    }
+  }
+}
