@@ -19,8 +19,5 @@ flowchart TB
     DAC -- "1-bit PDM" --> OUT["PMOD JA + 3.5 mm jack"]
     I2S -- "SInt(32.W) Q31" --> VIZ["VisualizerTop<br/>1024-pt FFT → 8 bands"]
     VIZ -- "Vec(8, UInt(24.W))" --> MATRIX["LedMatrixVisualizer<br/>8×8 matrix, PMOD JC/JD"]
-    VIZ -- "Vec(8, UInt(24.W)) → ASCII" --> UART["UART telemetry, 115200"]
   end
-
-  SW["SW0-4, SW14, SW15"] --> FPGA2
 ```

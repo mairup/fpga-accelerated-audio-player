@@ -14,5 +14,4 @@ flowchart TD
   G -- "Vec(8, UInt(24.W))" --> I["8-band magnitude + decay"]
   H -- "1-bit PDM" --> J["PMOD JA + 3.5 mm jack"]
   I -- "Vec(8, UInt(24.W))" --> K["8×8 LED matrix<br/>PMOD JC/JD"]
-  I -- "Vec(8, UInt(24.W)) → ASCII" --> L["UART 115200<br/>10 Hz telemetry"]
 ```

@@ -360,8 +360,32 @@ def dot_source(graph):
     return '\n'.join(L)
 
 
+def minimal_graph(graph):
+    """Filter to the audio-data path: drop control (Bool) edges, telemetry,
+    and implementation-detail submodules (collapse their parent to one box)."""
+    COLLAPSE = {'VisualizerTop', 'LedMatrixVisualizer', 'Chorus'}
+    DROP = {'UartTransmitter'}
+    hidden = set()
+    for h in graph['hierarchy']:
+        if h['cls'] in DROP or h['parent'] in COLLAPSE:
+            hidden.add(h['inst'])
+
+    edges = []
+    for e in graph['connections']:
+        t = e['type']
+        if not t or t == 'Bool()':
+            continue
+        if e['from'] in hidden or e['to'] in hidden:
+            continue
+        edges.append(e)
+    hier = [h for h in graph['hierarchy'] if h['inst'] not in hidden]
+    return {'hierarchy': hier, 'connections': edges,
+            'modules': graph['modules'], 'inst_ports': graph['inst_ports']}
+
+
 def main():
     graph = build_graph()
+    minimal = minimal_graph(graph)
     json_path = os.path.join(OUT, 'fpga-design.json')
     md_path = os.path.join(OUT, 'fpga-design.md')
     dot_path = os.path.join(OUT, 'fpga-design.dot')
@@ -370,12 +394,13 @@ def main():
         json.dump(graph, f, indent=2)
         f.write('\n')
     with open(md_path, 'w') as f:
-        f.write('# FPGA design (deterministic)\n\n')
+        f.write('# FPGA design — audio data flow\n\n')
         f.write('> Auto-generated from the Chisel sources by `generate_fpga_diagram.py`.\n')
-        f.write('> Do not edit by hand; re-run the script to regenerate.\n\n')
-        f.write('```mermaid\n' + mermaid(graph) + '\n```\n')
+        f.write('> Do not edit by hand; re-run the script to regenerate.\n')
+        f.write('> Minimal view: audio-data path only (control/telemetry/implementation detail omitted).\n\n')
+        f.write('```mermaid\n' + mermaid(minimal) + '\n```\n')
     with open(dot_path, 'w') as f:
-        f.write(dot_source(graph) + '\n')
+        f.write(dot_source(minimal) + '\n')
     if shutil.which('dot'):
         r = subprocess.run(['dot', '-Tsvg', '-o', svg_path, dot_path],
                            capture_output=True, text=True)
@@ -388,9 +413,9 @@ def main():
     print(f'wrote {json_path}')
     print(f'wrote {md_path}')
     print(f'wrote {dot_path}')
-    print(f'modules: {len(graph["modules"])}')
-    print(f'instances: {len(graph["hierarchy"])}')
-    print(f'connections: {len(graph["connections"])}')
+    print(f'modules: {len(graph["modules"])} (full)')
+    print(f'instances: {len(minimal["hierarchy"])} (minimal)')
+    print(f'connections: {len(minimal["connections"])} (minimal)')
 
 
 if __name__ == '__main__':
