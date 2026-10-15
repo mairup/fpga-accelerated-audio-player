@@ -4,8 +4,9 @@ Streams desktop audio to a Nexys A7 100T FPGA (over Wi-Fi or USB) for real-time 
 
 ## Demo
 
-- [Subtitled demo video](https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=PXL_20261013_181339736_subtitled.mp4) (47 s, ~139 MB) — live guitar through the DSP pipeline and the 8×8 FFT matrix
-- [All demo media](https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw) (folder share: video + photos)
+![Demo: live guitar through the DSP pipeline and the 8×8 FFT matrix](docs/media/demo.mp4)
+
+*(720p30 inline copy; the [full-quality 4K60 subtitled video, ~139 MB](https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=PXL_20261013_181339736_subtitled.mp4) and [all demo media](https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw) live on a self-hosted Nextcloud share instead of git LFS to keep the repo small.)*
 
 <img src="https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=PXL_20261013_181246992.jpg" width="420" alt="Demo rig: guitar streaming through the FPGA with LED matrix running"/>
 <img src="https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=PXL_20261013_181228338.jpg" width="420" alt="The full desk setup with the prototype"/>
