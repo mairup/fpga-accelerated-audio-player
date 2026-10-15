@@ -11,7 +11,7 @@ Gain 7× followed by hard clipping at ±0.2.
 1. `sampleIn * 7` (gain constant 7.0).
 2. If `|result| > 0.2`, output is clamped to ±0.2; otherwise output is the gained sample.
 
-This is hard-clip distortion. The "128-LUT" wording in the README/comment does not match the code — there is no lookup table.
+This is hard-clip distortion (no lookup table).
 
 ## Chorus — `dsp/Chorus.scala`
 
