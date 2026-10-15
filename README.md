@@ -2,6 +2,22 @@
 
 Streams desktop audio to a Nexys A7 100T FPGA (over Wi-Fi or USB) for real-time DSP effects and an 8×8 LED FFT spectrum visualizer.
 
+## Demo
+
+- [Subtitled demo video](https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=PXL_20261013_181339736_subtitled.mp4) (47 s, ~139 MB) — live guitar through the DSP pipeline and the 8×8 FFT matrix
+- [All demo media](https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw) (folder share: video + photos)
+
+The rig — guitar into an M-Track Solo, streamed through the ESP32 to the Nexys A7, LED matrix showing the FFT:
+
+<img src="https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=PXL_20261013_181246992.jpg" width="420" alt="Demo rig: guitar streaming through the FPGA with LED matrix running"/>
+<img src="https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=PXL_20261013_181228338.jpg" width="420" alt="The full desk setup with the prototype"/>
+
+The client in action:
+
+<img src="https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=Screenshot%20From%202026-10-15%2019-45-10.png" width="420" alt="Audio client streaming system audio to the ESP32"/>
+
+Media is hosted on a self-hosted Nextcloud share rather than git LFS to keep the repo small.
+
 ## Architecture
 
 One audio stream, two destinations on the FPGA: DSP effects out to a speaker, and an FFT spectrum on an 8×8 LED matrix.
