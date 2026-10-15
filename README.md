@@ -4,8 +4,7 @@ Streams desktop audio to a Nexys A7 100T FPGA (over Wi-Fi or USB) for real-time 
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — components and how they connect
-- [Data flow](docs/data-flow.md) — signal path, timing, and formats
+- [Architecture](docs/architecture.md) — components, signal path, and timing
 - [Hardware pin map](docs/hardware-pinmap.md) — every FPGA pin and its function
 - [Build & flash](docs/build-and-flash.md) — Docker toolchain and `make` targets
 
