@@ -2,6 +2,20 @@
 
 One audio stream, two destinations on the FPGA.
 
+```mermaid
+flowchart TD
+  A["parec capture<br/>mono, s16le, 48 kHz"] -- "s16le mono" --> B["480-sample frames<br/>(10 ms, 960 bytes)"]
+  B -- "960 B / frame" --> C["UDP :4440 (raw frame)<br/>or USB serial 2 Mbaud<br/>(sync word 5A A5 5A A5)"]
+  C -- "16-bit mono" --> D["ESP32 I2S master<br/>48 kHz / 16-bit / mono"]
+  D -- "16-bit I2S" --> E["FPGA I2sController<br/>→ Q31"]
+  E -- "SInt(32.W) Q31" --> F["AudioPipeline<br/>overdrive / chorus / tremolo"]
+  E -- "SInt(32.W) Q31" --> G["VisualizerTop<br/>1024-pt FFT"]
+  F -- "SInt(32.W) Q31" --> H["SigmaDeltaDAC<br/>PDM → PWM"]
+  G -- "Vec(8, UInt(24.W))" --> I["8-band magnitude + decay"]
+  H -- "1-bit PDM" --> J["PMOD JA + 3.5 mm jack"]
+  I -- "Vec(8, UInt(24.W))" --> K["8×8 LED matrix<br/>PMOD JC/JD"]
+```
+
 ## Capture (Linux client)
 
 1. `audio_client.py` loads a PulseAudio null sink (`fpga_audio_relay`) and sets it as the default output, so desktop audio plays into it.
@@ -22,7 +36,7 @@ One audio stream, two destinations on the FPGA.
 Decoded 32-bit samples from `I2sController` feed two modules:
 
 1. **Audio**: `AudioPipeline` (overdrive → chorus → tremolo, each gated by a switch) → `SigmaDeltaDAC` (1-bit PDM → PWM) → PMOD JA + 3.5 mm jack.
-2. **Visualizer**: `VisualizerTop` — `SampleBuffer` collects 1024 samples, bursts them through a radix-2² SDF FFT, `FFTMagnitudeBinner` sums magnitudes into 8 frequency bands, `FFTTemporalTracker` applies fast-attack/decay. Output drives `LedMatrixVisualizer` (8×8 matrix, PMOD JC/JD, 1 kHz refresh) and a 10 Hz UART telemetry line.
+2. **Visualizer**: `VisualizerTop` — `SampleBuffer` collects 1024 samples, bursts them through a radix-2² SDF FFT, `FFTMagnitudeBinner` sums magnitudes into 8 frequency bands, `FFTTemporalTracker` applies fast-attack/decay. Output drives `LedMatrixVisualizer` (8×8 matrix, PMOD JC/JD, 1 kHz refresh).
 
 ## Timing
 

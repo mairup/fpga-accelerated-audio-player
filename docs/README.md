@@ -31,4 +31,4 @@ Other:
 - [ESP32 bridge](esp32/streamer.md)
 - [Client](client/audio-client.md)
 
-Every number and behavior in these pages is cited to its source file/line. Diagrams live in [`../diagrams/`](../diagrams/) until approved for merge.
+Every number and behavior in these pages is cited to its source file/line.
