@@ -15,6 +15,20 @@ The client in action:
 
 <img src="https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw/download?path=/&files=Screenshot%20From%202026-10-15%2019-45-10.png" width="420" alt="Audio client streaming system audio to the ESP32"/>
 
+### Build photos
+
+<img src="docs/media/photos/PXL_20260821_111851255.jpg" width="280" alt="Soldered resistor ladder insulated with tape and heat-shrink"/>
+<img src="docs/media/photos/PXL_20260821_141915911.jpg" width="280" alt="Wiring harness with ribbon cables and the ESP32 DevKit"/>
+<img src="docs/media/photos/PXL_20260822_123515810.jpg" width="280" alt="8×8 LED matrix in a cardboard mount beside handwritten circuit notes"/>
+
+<img src="docs/media/photos/PXL_20260822_125818528.jpg" width="280" alt="Bench with the prototype, driver boards and LED bar graph"/>
+<img src="docs/media/photos/PXL_20260822_130055894.jpg" width="280" alt="Cardboard prototype next to the monitor running Yosys synthesis of TopAudioAccelerator"/>
+<img src="docs/media/photos/PXL_20260827_072854439.jpg" width="280" alt="Another bench prototype with 7-segment display, LED matrix and temp sensor board"/>
+
+<img src="docs/media/photos/PXL_20260827_072903847.jpg" width="280" alt="Cardboard-enclosed prototype with slider bank and LED matrix"/>
+
+Full-resolution originals: [`build-photos/` on the Nextcloud share](https://nextcloud.mairup.space/s/9WNikC9bBXMAaJw?path=/build-photos).
+
 Media is hosted on a self-hosted Nextcloud share rather than git LFS to keep the repo small.
 
 ## Architecture
