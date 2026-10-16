@@ -22,7 +22,7 @@ flowchart TD
   D -- "16-bit I2S" --> E["FPGA I2sController<br/>→ Q31"]
   E -- "SInt(32.W) Q31" --> F["AudioPipeline<br/>overdrive / chorus / tremolo"]
   E -- "SInt(32.W) Q31" --> G["VisualizerTop<br/>1024-pt FFT"]
-  F -- "SInt(32.W) Q31" --> H["SigmaDeltaDAC<br/>PDM → PWM"]
+  F -- "SInt(32.W) Q31" --> H["SigmaDeltaDAC"]
   G -- "Vec(8, UInt(24.W))" --> I["8-band magnitude + decay"]
   H -- "1-bit PDM" --> J["PMOD JA + 3.5 mm jack"]
   I -- "Vec(8, UInt(24.W))" --> K["8×8 LED matrix<br/>PMOD JC/JD"]
@@ -49,7 +49,7 @@ Runs an I2S master (48 kHz, 16-bit, mono) on SCK=GPIO32, WS=GPIO33, TX=GPIO12. F
 
 Top module `TopAudioAccelerator`. Decoded 32-bit samples from `I2sController` feed two independent paths:
 
-1. **Audio**: `AudioPipeline` (overdrive → chorus → tremolo) → `SigmaDeltaDAC` (1-bit PDM → PWM) → PMOD JA + 3.5 mm jack.
+1. **Audio**: `AudioPipeline` (overdrive → chorus → tremolo) → `SigmaDeltaDAC` (1-bit PDM) → PMOD JA + 3.5 mm jack.
 2. **Visualizer**: `VisualizerTop` — `SampleBuffer` collects 1024 samples, bursts them through a radix-2² SDF FFT, `FFTMagnitudeBinner` sums magnitudes into 8 frequency bands, `FFTTemporalTracker` applies fast-attack/decay. Output drives `LedMatrixVisualizer` (8×8 matrix, PMOD JC/JD, 1 kHz refresh).
 
 Effects are switch-gated: SW0 master out, SW1 FX master, SW2 overdrive, SW3 chorus, SW4 tremolo. SW14 and SW15 both inject a 440 Hz square-wave test tone into the DAC (bypassing the pipeline).
