@@ -16,9 +16,8 @@ class AudioPipelineIO extends Bundle {
 
   val ledFxMaster  = Output(Bool())
   val ledOverdrive = Output(Bool())
-  val ledFuzz      = Output(Bool())
   val ledChorus    = Output(Bool())
-  val ledPhaser    = Output(Bool())
+  val ledTremolo   = Output(Bool())
 }
 
 class AudioPipeline extends Module {

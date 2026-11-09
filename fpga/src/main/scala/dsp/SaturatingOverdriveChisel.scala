@@ -3,9 +3,20 @@ package dsp
 import chisel3._
 import chisel3.util._
 
+/**
+  * Saturating overdrive and hard-clipping audio effect.
+  *
+  * Multiplies incoming 32-bit Q1.31 audio samples by a fixed-point gain factor,
+  * then hard-clips the result to a symmetrical threshold [-threshold, +threshold].
+  *
+  * Latency: 1 clock cycle when sampleValid is asserted.
+  *
+  * @param gain Linear pre-gain multiplier (default: 8.0, quantized to Q24.16).
+  * @param threshold Symmetrical hard-clip limit in range (0.0, 1.0] (default: 0.2, quantized to Q1.31).
+  */
 class SaturatingOverdriveChisel(
-  val gain: Double = 3,
-  val threshold: Double = 0.03
+  val gain: Double = 8.0,
+  val threshold: Double = 0.2
 ) extends Module {
   val io = IO(new AudioStreamIO(32))
 
