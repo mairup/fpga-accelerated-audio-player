@@ -16,7 +16,12 @@ ifeq (client,$(firstword $(MAKECMDGOALS)))
   $(eval $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)):;@:)
 endif
 
-.PHONY: all help fpga esp client clean
+ifeq (guitar,$(firstword $(MAKECMDGOALS)))
+  GUITAR_CMD := $(word 2,$(MAKECMDGOALS))
+  $(eval $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)):;@:)
+endif
+
+.PHONY: all help fpga esp client guitar clean
 
 all:
 	@$(MAKE) -j2 esp fpga
@@ -31,7 +36,9 @@ help:
 	@echo "make fpga flash  - Flash FPGA bitstream to $(BOARD) only"
 	@echo "make esp         - Deploy & run audio streamer on ESP32 ($(ESP_DEVICE))"
 	@echo "make client      - Launch audio streaming client ($(ESP_IP))"
-	@echo "make client usb  - Launch audio streaming client via USB (/dev/ttyUSB0)"
+	@echo "make client usb  - Launch audio streaming client via USB ($(ESP_USB))"
+	@echo "make guitar      - Stream M-Audio guitar line to ESP32 over Wi-Fi ($(ESP_IP))"
+	@echo "make guitar usb  - Stream M-Audio guitar line to ESP32 via USB serial ($(ESP_USB))"
 	@echo "make clean       - Clean build artifacts"
 
 fpga:
@@ -64,6 +71,18 @@ else ifeq ($(CLIENT_CMD),)
 	$(PYTHON) client/audio_client.py --target $(ESP_IP)
 else
 	@echo "Unknown client command '$(CLIENT_CMD)'. Use 'make client' or 'make client usb'."
+	@exit 1
+endif
+
+guitar:
+ifeq ($(GUITAR_CMD),usb)
+	@echo "Starting ultra low-latency guitar streamer to ESP32 via USB serial ($(ESP_USB))..."
+	$(PYTHON) client/guitar_streamer.py --usb $(ESP_USB)
+else ifeq ($(GUITAR_CMD),)
+	@echo "Starting ultra low-latency guitar streamer to ESP32 over Wi-Fi ($(ESP_IP))..."
+	$(PYTHON) client/guitar_streamer.py --target $(ESP_IP)
+else
+	@echo "Unknown guitar command '$(GUITAR_CMD)'. Use 'make guitar' or 'make guitar usb'."
 	@exit 1
 endif
 
