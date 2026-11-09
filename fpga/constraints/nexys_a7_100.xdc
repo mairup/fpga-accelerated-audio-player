@@ -19,9 +19,6 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_ws]
 set_property LOC F18 [get_ports io_sdOut]
 set_property IOSTANDARD LVCMOS33 [get_ports io_sdOut]
 
-set_property LOC G18 [get_ports io_sdIn]
-set_property IOSTANDARD LVCMOS33 [get_ports io_sdIn]
-
 ## DIY Stereo Audio Outputs on PMOD JA (Top Row)
 set_property LOC C17 [get_ports io_audPwmLeft]
 set_property IOSTANDARD LVCMOS33 [get_ports io_audPwmLeft]
@@ -120,4 +117,8 @@ set_property IOSTANDARD LVCMOS33 [get_ports io_audSd]
 ## UART Serial TX Pin (FT2232H Port B -> /dev/ttyUSB1)
 set_property LOC D4 [get_ports io_txSerialPin]
 set_property IOSTANDARD LVCMOS33 [get_ports io_txSerialPin]
+
+## Config UART RX (replaces I2S SDIN — ESP32 GPIO 13 now used for UART TX)
+set_property LOC G18 [get_ports io_uartRxPin]
+set_property IOSTANDARD LVCMOS33 [get_ports io_uartRxPin]
 

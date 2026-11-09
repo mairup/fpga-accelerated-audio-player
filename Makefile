@@ -40,3 +40,25 @@ build-fpga:
 
 clean:
 	$(MAKE) -C fpga clean
+
+.PHONY: wiring-test wiring-drive
+
+PC_IP ?= $(shell ip -4 addr | awk '/inet 192\.168\.5\./{print $$2; exit}' | cut -d/ -f1)
+
+wiring-drive:
+	@echo "Building + flashing FPGA JA drive test (8 freq fingerprints + heartbeat)..."
+	$(MAKE) -C fpga build TOP=JaDriveTop XDC=constraints/ja_drive.xdc
+	$(MAKE) -C fpga flash TOP=JaDriveTop
+	@echo "Watch telemetry for 'ALIVE': stty -F /dev/ttyUSB2 115200 raw -echo && cat /dev/ttyUSB2"
+
+wiring-test:
+	@echo "Wiring test: FPGA drives 8 freqs on JA, ESP reads all its GPIOs."
+	@test -n "$(PC_IP)" || (echo "ERROR: no 192.168.5.x address on this PC"; exit 1)
+	@mkdir -p /tmp/kilo
+	@sed "s/192\.168\.5\.100/$(PC_IP)/" scripts/wiring/gpio_read.toit > /tmp/kilo/gpio_read.gen.toit
+	@python3 scripts/wiring/listen.py 9998 30 > /tmp/kilo/wiring.out & \
+	trap 'kill %1 2>/dev/null' EXIT; \
+	sleep 1; \
+	$(JAG) run -d $(ESP_DEVICE) /tmp/kilo/gpio_read.gen.toit; \
+	sleep 12; \
+	cat /tmp/kilo/wiring.out

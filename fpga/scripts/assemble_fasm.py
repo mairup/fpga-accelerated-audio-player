@@ -3,10 +3,11 @@ import sys
 from prjxray.db import Database
 from prjxray.fasm_assembler import FasmAssembler
 
+
 def main():
-    db_root = "/opt/conda/envs/xc7/share/symbiflow/prjxray-db/artix7"
-    if not os.path.exists(db_root):
-        db_root = "/home/mai/miniconda3/envs/xc7/share/symbiflow/prjxray-db/artix7"
+    db_root = os.environ.get(
+        "PRJXRAY_DB", "/opt/conda/envs/xc7/share/symbiflow/prjxray-db/artix7"
+    )
 
     stem = sys.argv[1] if len(sys.argv) > 1 else "TopAudioAccelerator"
     part_name = sys.argv[2] if len(sys.argv) > 2 else "xc7a100tcsg324-1"
@@ -25,6 +26,7 @@ def main():
             out.write(f"0x{addr:08x} {words_str}\n")
 
     print(f"Successfully generated {frames_file} for {part_name}")
+
 
 if __name__ == "__main__":
     main()

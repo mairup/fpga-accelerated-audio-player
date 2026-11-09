@@ -6,5 +6,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /workspace
 
-ENTRYPOINT ["openFPGALoader", "-b", "nexys_a7_50"]
-CMD ["HelloWorld.bit"]
+ENTRYPOINT ["openFPGALoader"]
+CMD ["-b", "nexys_a7_100", "TopAudioAccelerator.bit"]

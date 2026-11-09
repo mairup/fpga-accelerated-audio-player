@@ -3,7 +3,7 @@ import net.udp as udp
 import monitor show Channel
 import log
 import i2s
-import io show LITTLE-ENDIAN
+import uart
 import gpio.adc show Adc
 
 AUDIO-PORT ::= 4440
@@ -11,15 +11,14 @@ AUDIO-PORT ::= 4440
 BCLK-PIN  ::= 32
 WS-PIN    ::= 33
 SDOUT-PIN ::= 12
-SDIN-PIN  ::= 13
 ADC-PIN   ::= 34
+UART-TX-PIN ::= 13
 
 VOLT-MIN ::= 0.1420
 VOLT-MAX ::= 3.1390
 ADC-POLL-MS ::= 50
 
-UDP-FRAME-BYTES ::= 960
-I2S-FRAME-BYTES ::= 960
+FRAME-BYTES ::= 960
 
 MAX-QUEUE-FRAMES ::= 10
 
@@ -30,6 +29,7 @@ class AudioStreamer:
   socket/udp.Socket? := null
   i2s-bus/i2s.Bus?   := null
   adc/Adc?           := null
+  uart-bus/uart.Port? := null
 
   volume-gain/float    := 1.0
   volume-voltage/float := 3.14
@@ -48,23 +48,29 @@ class AudioStreamer:
       log.error "ADC init failed on GPIO $ADC-PIN: $err"
 
   init-i2s -> none:
-    log.info "Initializing I2S Master Bus (BCLK=$BCLK-PIN WS=$WS-PIN SDOUT=$SDOUT-PIN SDIN=$SDIN-PIN)"
+    log.info "Initializing I2S Master Bus (BCLK=$BCLK-PIN WS=$WS-PIN SDOUT=$SDOUT-PIN)"
     err := catch:
       i2s-bus = i2s.Bus
         --master=true
         --sck=BCLK-PIN
         --ws=WS-PIN
         --tx=SDOUT-PIN
-        --rx=SDIN-PIN
       i2s-bus.configure
         --sample-rate=48000
         --bits-per-sample=16
-        --slots-out=i2s.Bus.SLOTS-MONO-BOTH
         --slots-in=i2s.Bus.SLOTS-MONO-LEFT
+        --slots-out=i2s.Bus.SLOTS-MONO-BOTH
       i2s-bus.start
-      log.info "I2S Master Bus started at 48kHz 16-bit Mono"
+      log.info "I2S Master Bus started at 48kHz 16-bit Mono (no SDIN — GPIO 13 repurposed for UART TX)"
     if err:
       log.error "I2S init failed: $err"
+
+  init-uart -> none:
+    err := catch:
+      uart-bus = uart.Port --tx=UART-TX-PIN --baud-rate=115200
+      log.info "UART TX initialized on GPIO $UART-TX-PIN @ 115200 baud"
+    if err:
+      log.error "UART init failed on GPIO $UART-TX-PIN: $err"
 
   calculate-gain v/float -> float:
     if v <= VOLT-MIN: return 0.0
@@ -72,6 +78,10 @@ class AudioStreamer:
     return (v - VOLT-MIN) / (VOLT-MAX - VOLT-MIN)
 
   volume-poll-loop -> none:
+    cfg-buf := ByteArray 5
+    cfg-buf[0] = 0xAA
+    cfg-buf[1] = 0x01
+    cfg-buf[2] = 0x01
     while true:
       if adc:
         err := catch:
@@ -80,35 +90,12 @@ class AudioStreamer:
           volume-gain = calculate-gain v
         if err:
           log.error "ADC read error: $err"
+      if uart-bus:
+        vol := (volume-gain * 0x7FFF).to-int
+        cfg-buf[3] = (vol >> 8) & 0xFF
+        cfg-buf[4] = vol & 0xFF
+        uart-bus.out.write cfg-buf
       sleep --ms=ADC-POLL-MS
-
-  /**
-  Scales 16-bit little-endian PCM samples in-place using 4x loop unrolling.
-  Processing in-place avoids heap allocations and GC pauses, while unrolling
-  reduces bytecode loop overhead to prevent UDP receive packet drops.
-  */
-  apply-pcm-gain buf/ByteArray mult/int -> none:
-    size := buf.size
-    i := 0
-    while i < size:
-      s0 := LITTLE-ENDIAN.int16 buf i
-      s1 := LITTLE-ENDIAN.int16 buf i + 2
-      s2 := LITTLE-ENDIAN.int16 buf i + 4
-      s3 := LITTLE-ENDIAN.int16 buf i + 6
-      LITTLE-ENDIAN.put-int16 buf i ((s0 * mult) >> 15)
-      LITTLE-ENDIAN.put-int16 buf i + 2 ((s1 * mult) >> 15)
-      LITTLE-ENDIAN.put-int16 buf i + 4 ((s2 * mult) >> 15)
-      LITTLE-ENDIAN.put-int16 buf i + 6 ((s3 * mult) >> 15)
-      i += 8
-
-  scale-samples buf/ByteArray -> none:
-    gain := volume-gain
-    if gain >= 0.999: return
-    if gain <= 0.001:
-      buf.fill 0
-      return
-    mult := (gain * 32768.0).to-int
-    apply-pcm-gain buf mult
 
   run -> none:
     socket = network.udp-open --port=AUDIO-PORT
@@ -116,6 +103,7 @@ class AudioStreamer:
 
     init-i2s
     init-adc
+    init-uart
     task:: volume-poll-loop
     task:: i2s-write-loop
     task:: stats-loop
@@ -123,7 +111,7 @@ class AudioStreamer:
     while true:
       err := catch:
         gram := socket.receive
-        if gram.data.size == UDP-FRAME-BYTES:
+        if gram.data.size == FRAME-BYTES:
           rx-count++
           if RX-QUEUE.size < MAX-QUEUE-FRAMES:
             RX-QUEUE.send gram.data
@@ -131,10 +119,10 @@ class AudioStreamer:
             drop-count++
       if err:
         log.error "UDP RX error: $err"
-        sleep --ms=1
+      sleep --ms=1
 
   i2s-write-loop -> none:
-    silence-buf := ByteArray I2S-FRAME-BYTES
+    silence-buf := ByteArray FRAME-BYTES
 
     while true:
       buf := null
@@ -142,7 +130,6 @@ class AudioStreamer:
         buf = silence-buf
       else:
         buf = RX-QUEUE.receive
-        scale-samples buf
 
       if i2s-bus:
         i2s-bus.write buf

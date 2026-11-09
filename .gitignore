@@ -37,6 +37,9 @@ HelloWorld.v
 DualPort*.v
 firrtl_black_box_resource_files.f
 
+# FPGA bitstreams
+*.bit
+
 # OS & Editor files
 .DS_Store
 Thumbs.db
